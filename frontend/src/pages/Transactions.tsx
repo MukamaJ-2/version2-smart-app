@@ -32,6 +32,7 @@ import {
   Shield,
   CreditCard,
   MoreHorizontal,
+  Receipt,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ import type { TrainingTransaction } from "@/lib/ai/training-data";
 import { Badge } from "@/components/ui/badge";
 import { addNotification, getUserEmail, markEmailSent, wasEmailSent } from "@/lib/notifications";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { ReceiptScanner } from "@/components/dashboard/ReceiptScanner";
 
 const categoryIcons: Record<string, typeof Coffee> = {
   Rent: Home,
@@ -157,7 +159,7 @@ interface ParsedTransaction {
 
 const APP_CATEGORIES = Object.keys(categoryIcons);
 
-function parseNaturalLanguage(input: string): (ParsedTransaction & { confidence?: number }) | null {
+async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction & { confidence?: number }) | null> {
   const lower = input.toLowerCase();
   const amountMatch = input.match(/(\d+(?:\.\d+)?)\s*(k|K|thousand|thousands)?/i);
   if (!amountMatch) return null;
@@ -168,15 +170,36 @@ function parseNaturalLanguage(input: string): (ParsedTransaction & { confidence?
   const isIncome = /received|income|salary|payment|deposit|earned|got|refund/i.test(lower);
   const isExpense = /spent|bought|purchase|paid|expense|cost/i.test(lower);
   const type: "income" | "expense" = isIncome ? "income" : (isExpense ? "expense" : "expense");
-  const aiResult = aiService.categorizeTransaction(input, amount, undefined, type);
-  const category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+  
+  // Call real AI backend
+  let category = "Miscellaneous";
+  let confidence = undefined;
+  try {
+    const aiResponse = await fetch("http://127.0.0.1:5000/api/v1/categorize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: input })
+    });
+    
+    if (aiResponse.ok) {
+      const aiResult = await aiResponse.json();
+      category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+      confidence = aiResult.confidence;
+    }
+  } catch (error) {
+    console.error("Failed to fetch ML categorization:", error);
+    // Fallback to local deterministic aiService if backend is down
+    const aiResult = aiService.categorizeTransaction(input, amount, undefined, type);
+    category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+    confidence = aiResult.confidence;
+  }
+
   let description = input.trim();
   if (description.length > 50) {
     description = description.substring(0, 50) + "...";
   }
-  return { description, amount, type, category, confidence: aiResult.confidence };
+  return { description, amount, type, category, confidence };
 }
-
 const QUICK_ENTRY_DEBOUNCE_MS = 350;
 
 function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Transaction) => void }) {
@@ -191,8 +214,9 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
       setParsed(null);
       return;
     }
-    const timer = window.setTimeout(() => {
-      setParsed(parseNaturalLanguage(input));
+    const timer = window.setTimeout(async () => {
+      const result = await parseNaturalLanguage(input);
+      setParsed(result);
     }, QUICK_ENTRY_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [input]);
@@ -396,6 +420,7 @@ export default function Transactions() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showQuickEntry, setShowQuickEntry] = useState(false);
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -650,22 +675,37 @@ export default function Transactions() {
     });
   };
 
-  const handleRecategorize = () => {
+  const handleRecategorize = async () => {
     const amountValue = parseFloat(editDraft.amount);
     if (Number.isNaN(amountValue) || !editDraft.description.trim()) return;
     setRecategorizing(true);
-    // Run categorizer off the main thread tick so the UI stays responsive
-    window.setTimeout(() => {
-      const aiResult = aiService.categorizeTransaction(
-        editDraft.description,
-        amountValue,
-        undefined,
-        editDraft.type
-      );
-      const category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+    
+    try {
+      const aiResponse = await fetch("http://127.0.0.1:5000/api/v1/categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: editDraft.description })
+      });
+      
+      let category = "Miscellaneous";
+      if (aiResponse.ok) {
+        const aiResult = await aiResponse.json();
+        category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+      } else {
+        const aiResult = aiService.categorizeTransaction(
+          editDraft.description,
+          amountValue,
+          undefined,
+          editDraft.type
+        );
+        category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+      }
       setEditDraft((prev) => ({ ...prev, category }));
+    } catch (error) {
+      console.error("Categorization failed", error);
+    } finally {
       setRecategorizing(false);
-    }, 0);
+    }
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -738,7 +778,7 @@ export default function Transactions() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 space-y-6">
+      <div className="min-h-screen p-6 pb-28 space-y-6">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -762,7 +802,7 @@ export default function Transactions() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-4"
+          className="flex items-center gap-3"
         >
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -771,12 +811,12 @@ export default function Transactions() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search transactions..."
-              className="w-full pl-11 pr-4 py-3 bg-muted/30 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              className="w-full pl-11 pr-4 py-2.5 bg-muted/30 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm h-10"
             />
           </div>
           <Button
             variant="outline"
-            className="border-border hover:border-primary/50"
+            className="border-border hover:border-primary/50 h-10"
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="w-4 h-4 mr-2" />
@@ -864,7 +904,7 @@ export default function Transactions() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + groupIndex * 0.05 }}
             >
-              <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2 py-1.5 bg-muted/40 rounded-lg inline-block">
                 {formatDate(date)}
               </h3>
               <div className="glass-card rounded-xl overflow-hidden divide-y divide-border">
@@ -1014,17 +1054,31 @@ export default function Transactions() {
           ))}
         </div>
 
-        {/* Floating Action Button */}
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowQuickEntry(true)}
-          className="fixed bottom-6 right-24 w-14 h-14 rounded-full bg-gradient-primary shadow-glow-md flex items-center justify-center z-40 hover:shadow-glow-lg transition-shadow"
-        >
-          <Plus className="w-6 h-6 text-primary-foreground" />
-        </motion.button>
+        {/* Floating Action Buttons */}
+        <div className="fixed bottom-6 right-24 flex items-center gap-3 z-40">
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowReceiptScanner(true)}
+            className="w-14 h-14 rounded-full bg-secondary/80 shadow-glow-md flex items-center justify-center hover:shadow-glow-lg transition-shadow"
+            title="Scan Receipt"
+          >
+            <Receipt className="w-6 h-6 text-secondary-foreground" />
+          </motion.button>
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowQuickEntry(true)}
+            className="w-14 h-14 rounded-full bg-gradient-primary shadow-glow-md flex items-center justify-center hover:shadow-glow-lg transition-shadow"
+            title="Quick Entry"
+          >
+            <Plus className="w-6 h-6 text-primary-foreground" />
+          </motion.button>
+        </div>
 
         {/* Quick Entry Modal */}
         <AnimatePresence>
@@ -1032,6 +1086,53 @@ export default function Transactions() {
             <QuickEntry 
               onClose={() => setShowQuickEntry(false)} 
               onAdd={handleAddTransaction}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Receipt Scanner Modal */}
+        <AnimatePresence>
+          {showReceiptScanner && (
+            <ReceiptScanner
+              onClose={() => setShowReceiptScanner(false)}
+              onConfirmSplit={async (parsed) => {
+                setShowReceiptScanner(false);
+
+                // Log each receipt item as a real transaction in Supabase
+                if (!isSupabaseConfigured || !userId) return;
+
+                const now = new Date();
+                const date = now.toISOString().split("T")[0];
+                const time = now.toLocaleTimeString("en-UG", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                });
+
+                const rows = parsed.items.map((item) => ({
+                  user_id: userId,
+                  description: `${item.description}${parsed.merchant ? ` (${parsed.merchant})` : ""}`,
+                  amount: item.amount,
+                  type: "expense" as const,
+                  category: item.category,
+                  date,
+                  time,
+                }));
+
+                const { error } = await supabase.from("transactions").insert(rows);
+                if (error) {
+                  toast({
+                    title: "Failed to log receipt",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                } else {
+                  toast({
+                    title: "Receipt logged",
+                    description: `${rows.length} transaction${rows.length > 1 ? "s" : ""} added from receipt.`,
+                  });
+                }
+              }}
             />
           )}
         </AnimatePresence>

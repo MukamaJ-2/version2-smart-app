@@ -5,7 +5,7 @@ import {
   MessageSquare,
   BarChart3,
   Settings,
-  Zap,
+  PiggyBank,
   Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -13,7 +13,7 @@ import {
 export const navItems: { icon: LucideIcon; label: string; path: string }[] = [
   { icon: LayoutDashboard, label: "Wallet Hub", path: "/dashboard" },
   { icon: Wallet, label: "Transactions", path: "/transactions" },
-  { icon: Zap, label: "Flux Pods", path: "/flux-pods" },
+  { icon: PiggyBank, label: "Budget Ports", path: "/budget-ports" },
   { icon: Target, label: "Goals", path: "/goals" },
   { icon: MessageSquare, label: "AI Companion", path: "/companion" },
   { icon: BarChart3, label: "Reports", path: "/reports" },

@@ -113,10 +113,10 @@ export default function FluxPodPreview() {
           <div className="p-2 rounded-lg bg-primary/10 shadow-glow-sm">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <h3 className="font-display text-sm font-semibold text-foreground">Flux Pods</h3>
+          <h3 className="font-display text-sm font-semibold text-foreground">Budget Ports</h3>
         </div>
         <Link 
-          to="/flux-pods"
+          to="/budget-ports"
           className="text-xs text-primary hover:text-primary-glow transition-colors"
         >
           View All →
@@ -135,7 +135,7 @@ export default function FluxPodPreview() {
           const remaining = pod.allocated - pod.spent;
 
           return (
-            <Link key={pod.id} to="/flux-pods">
+            <Link key={pod.id} to="/budget-ports">
             <motion.div
               className={cn(
                   "p-3 rounded-lg border transition-all duration-300 hover:scale-[1.02] cursor-pointer",

@@ -105,15 +105,15 @@ const NotFound = () => {
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link to="/dashboard" className="text-xs text-primary hover:text-primary-glow transition-colors">
-                Nexus Hub
+                Uniguard Hub
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link to="/transactions" className="text-xs text-primary hover:text-primary-glow transition-colors">
                 Transactions
               </Link>
               <span className="text-muted-foreground">•</span>
-              <Link to="/flux-pods" className="text-xs text-primary hover:text-primary-glow transition-colors">
-                Flux Pods
+              <Link to="/budget-ports" className="text-xs text-primary hover:text-primary-glow transition-colors">
+                Budget Ports
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link to="/goals" className="text-xs text-primary hover:text-primary-glow transition-colors">

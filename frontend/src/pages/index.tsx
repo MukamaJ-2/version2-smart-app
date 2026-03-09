@@ -1,9 +1,10 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Activity, Moon, Sun, User, Pencil, Target } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import FinancialNexus from "@/components/nexus/FinancialNexus";
+import { TimeMachineControls } from "@/components/nexus/TimeMachineControls";
 import AppLayout from "@/components/layout/AppLayout";
 import QuickStats from "@/components/dashboard/QuickStats";
 import FluxPodPreview from "@/components/dashboard/FluxPodPreview";
@@ -29,6 +30,7 @@ export default function Index() {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [simulatedMonths, setSimulatedMonths] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -75,7 +77,7 @@ export default function Index() {
               {profile?.name ? (
                 <>Welcome back, {profile.name.split(/\s+/)[0]}</>
               ) : (
-                "Nexus Hub"
+                "Uniguard Hub"
               )}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -103,7 +105,7 @@ export default function Index() {
         </motion.header>
 
         {/* Quick Stats */}
-        <QuickStats />
+        <QuickStats simulatedMonths={simulatedMonths} />
 
         {/* Your profile summary (from onboarding) */}
         {answers && (lifeStageLabel || savingsGoalLabel || alertLabel || essentialCount > 0) && (
@@ -147,7 +149,7 @@ export default function Index() {
                 <div>
                   <p className="text-muted-foreground text-xs">Essential categories</p>
                   <p className="font-medium text-foreground">
-                    {essentialCount} category{essentialCount !== 1 ? "ies" : ""} you marked as essential
+                    {essentialCount} {essentialCount !== 1 ? "categories" : "category"} you marked as essential
                   </p>
                 </div>
               )}
@@ -188,7 +190,7 @@ export default function Index() {
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* 3D Nexus Visualization */}
+          {/* 3D Finance Overview */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -197,12 +199,21 @@ export default function Index() {
           >
             <div className="absolute top-4 left-4 z-10">
               <h2 className="font-display text-sm font-semibold text-foreground/80 uppercase tracking-wider">
-                Financial Nexus
+                Finance Overview
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Interactive 3D visualization</p>
             </div>
             <div className="h-[500px]">
-              <FinancialNexus />
+              <FinancialNexus
+                simulatedMonths={simulatedMonths}
+              />
+            </div>
+            {/* Time Machine Simulator */}
+            <div className="p-4 border-t border-border/50 bg-background/50">
+              <TimeMachineControls
+                simulatedMonthsIntoFuture={simulatedMonths}
+                onMonthsChange={setSimulatedMonths}
+              />
             </div>
           </motion.div>
 
@@ -218,6 +229,7 @@ export default function Index() {
             <NotificationsPanel />
           </div>
         </div>
+
       </div>
     </AppLayout>
   );

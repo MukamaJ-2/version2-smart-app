@@ -1,10 +1,85 @@
 import { useMemo, useRef, useEffect, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Sphere, Html, Float } from "@react-three/drei";
-import * as THREE from "three";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { aiService } from "@/lib/ai/ai-service";
+import * as THREE from "three";
+
+interface ReceiptItem {
+  description: string;
+  amount: number;
+  category: string;
+}
+
+interface ReceiptOrbProps {
+  startPos: [number, number, number];
+  endPos: [number, number, number];
+  color: string;
+  onComplete: () => void;
+  delay?: number;
+}
+
+function ReceiptOrb({ startPos, endPos, color, onComplete, delay = 0 }: ReceiptOrbProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const startTime = useRef(0);
+  const [started, setStarted] = useState(false);
+
+  // Animation duration in seconds
+  const DURATION = 1.5;
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+
+    if (!started) {
+      if (startTime.current === 0) {
+        startTime.current = state.clock.elapsedTime + delay;
+      }
+      if (state.clock.elapsedTime >= startTime.current) {
+        setStarted(true);
+      } else {
+        return; // wait for delay
+      }
+    }
+
+    const elapsed = state.clock.elapsedTime - startTime.current;
+    const progress = Math.min(elapsed / DURATION, 1);
+
+    // Easing function (ease out cubic)
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+    // Interpolate position
+    const startVec = new THREE.Vector3(...startPos);
+    const endVec = new THREE.Vector3(...endPos);
+    meshRef.current.position.lerpVectors(startVec, endVec, easeProgress);
+
+    // Slight arc to the path
+    meshRef.current.position.y += Math.sin(progress * Math.PI) * 1.5;
+
+    // Scale down as it gets closer
+    const scale = 1 - progress * 0.5;
+    meshRef.current.scale.setScalar(scale);
+
+    if (progress >= 1) {
+      onComplete();
+    }
+  });
+
+  if (!started) return null;
+
+  return (
+    <Sphere ref={meshRef} args={[0.2, 16, 16]} position={startPos}>
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={2}
+        transparent
+        opacity={0.8}
+      />
+    </Sphere>
+  );
+}
 
 interface NexusNodeProps {
   position: [number, number, number];
@@ -37,13 +112,22 @@ function NexusNode({ position, color, label, value, size = 0.5, onClick, link }:
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
 
-  useFrame((state) => {
+  const targetSizeRef = useRef(size);
+
+  useEffect(() => {
+    targetSizeRef.current = size;
+  }, [size]);
+
+  useFrame((state, delta) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.005;
+      // Smoothly animate to target size
+      meshRef.current.scale.lerp(new THREE.Vector3(targetSizeRef.current, targetSizeRef.current, targetSizeRef.current), delta * 2);
     }
     if (glowRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
-      glowRef.current.scale.setScalar(scale);
+      const baseScale = targetSizeRef.current * 1.5;
+      const pulsingScale = baseScale + Math.sin(state.clock.elapsedTime * 2) * 0.1;
+      glowRef.current.scale.lerp(new THREE.Vector3(pulsingScale, pulsingScale, pulsingScale), delta * 2);
     }
   });
 
@@ -55,14 +139,14 @@ function NexusNode({ position, color, label, value, size = 0.5, onClick, link }:
 
   return (
     <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
-      <group position={position} onClick={handleClick} style={{ cursor: link ? 'pointer' : 'default' }}>
+      <group position={position} onClick={handleClick}>
         {/* Outer glow */}
-        <Sphere ref={glowRef} args={[size * 1.5, 32, 32]}>
+        <Sphere ref={glowRef} args={[1, 32, 32]}>
           <meshBasicMaterial color={color} transparent opacity={0.1} />
         </Sphere>
-        
+
         {/* Main sphere */}
-        <Sphere ref={meshRef} args={[size, 32, 32]}>
+        <Sphere ref={meshRef} args={[1, 32, 32]}>
           <meshStandardMaterial
             color={color}
             emissive={color}
@@ -74,7 +158,7 @@ function NexusNode({ position, color, label, value, size = 0.5, onClick, link }:
 
         {/* Label - Make it clickable */}
         <Html position={[0, size + 0.5, 0]} center distanceFactor={8}>
-          <div 
+          <div
             className={cn("text-center cursor-pointer hover:opacity-80 transition-opacity", link && "pointer-events-auto")}
             onClick={link ? handleClick : undefined}
           >
@@ -107,7 +191,7 @@ function OrbitRing({ radius, color, speed = 1, opacity = 0.3 }: { radius: number
 
 function DataFlowLine({ start, end, color }: { start: [number, number, number]; end: [number, number, number]; color: string }) {
   const lineRef = useRef<THREE.Line>(null);
-  
+
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
     const points = [new THREE.Vector3(...start), new THREE.Vector3(...end)];
@@ -116,9 +200,9 @@ function DataFlowLine({ start, end, color }: { start: [number, number, number]; 
   }, [start, end]);
 
   const material = useMemo(() => {
-    return new THREE.LineBasicMaterial({ 
-      color, 
-      transparent: true, 
+    return new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
       opacity: 0.4,
     });
   }, [color]);
@@ -163,7 +247,7 @@ function CentralCore() {
           opacity={0.6}
         />
       </mesh>
-      
+
       {/* Inner sphere */}
       <Sphere ref={innerRef} args={[0.3, 32, 32]}>
         <meshStandardMaterial
@@ -194,10 +278,9 @@ function Scene({
   return (
     <>
       {/* Lighting */}
-      <ambientLight intensity={0.2} />
+      <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} intensity={1} color="#00d4ff" />
       <pointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
-      <pointLight position={[0, 0, 0]} intensity={0.5} color="#00d4ff" />
 
       {/* Central Core */}
       <CentralCore />
@@ -209,9 +292,9 @@ function Scene({
 
       {/* Nodes */}
       {nodes.map((node, index) => (
-        <NexusNode 
-          key={index} 
-          {...node} 
+        <NexusNode
+          key={index}
+          {...node}
           link={node.link}
           onClick={node.link && onNodeClick ? () => onNodeClick(node.link!) : undefined}
         />
@@ -237,12 +320,32 @@ function Scene({
   );
 }
 
-export default function FinancialNexus() {
+export default function FinancialNexus({
+  simulatedMonths = 0,
+  receiptData,
+  onReceiptAnimationComplete
+}: {
+  simulatedMonths?: number,
+  receiptData?: { items: ReceiptItem[] } | null,
+  onReceiptAnimationComplete?: () => void
+}) {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [fluxPods, setFluxPods] = useState<FluxPod[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [fluxPods, setFluxPods] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [activeOrbs, setActiveOrbs] = useState<Array<{ id: string; item: ReceiptItem; startPos: [number, number, number]; endPos: [number, number, number]; color: string; delay: number }>>([]);
+
+  // Helper to get color by category for the orbs mapping to flux pods
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      Food: "#22c55e",
+      Tech: "#00d4ff",
+      Shopping: "#f59e0b",
+      Clothing: "#a855f7",
+    };
+    return colors[category] || "#ef4444";
+  };
 
   const handleNodeClick = (link: string) => {
     navigate(link);
@@ -264,16 +367,16 @@ export default function FinancialNexus() {
       setTransactions((txData ?? []) as Transaction[]);
       const { data: podData } = await supabase
         .from("flux_pods")
-        .select("id,allocated,spent")
+        .select("*")
         .eq("user_id", userData.user.id);
       if (!isActive) return;
-      setFluxPods((podData ?? []) as FluxPod[]);
+      setFluxPods((podData ?? []) as any[]);
       const { data: goalData } = await supabase
         .from("goals")
-        .select("id,name")
+        .select("*")
         .eq("user_id", userData.user.id);
       if (!isActive) return;
-      setGoals((goalData ?? []) as Goal[]);
+      setGoals((goalData ?? []) as any[]);
     };
     loadData();
     return () => {
@@ -366,14 +469,85 @@ export default function FinancialNexus() {
     const podsAllocated = fluxPods.reduce((sum, pod) => sum + pod.allocated, 0);
     const netWorth = income - expenses;
 
+    // Default sizes
+    let netWorthSize = 0.8;
+    let expensesSize = 0.5;
+    let goalsSize = 0.6;
+    let podsSize = 0.5;
+
+    let displayNetWorth = netWorth;
+    let displayExpenses = expenses;
+    let goalsValue = goals.length ? `${goals.length} Active` : "No Goals";
+
+    if (simulatedMonths > 0) {
+      const simulatedState = aiService.simulateFutureState(
+        simulatedMonths,
+        fluxPods.map(p => ({ ...p, category: p.name || 'Unknown' })),
+        goals.map(g => ({ ...g, targetAmount: g.target_amount || 0, currentAmount: g.current_amount || 0, monthlyContribution: g.monthly_contribution || 0 })),
+        netWorth
+      );
+
+      displayNetWorth = simulatedState.projectedNetWorth;
+      const totalProjectedPodSpend = simulatedState.projectedPods.reduce((a, b) => a + b.projectedSpent, 0);
+      displayExpenses = expenses + (totalProjectedPodSpend * simulatedMonths);
+
+      // Animate sizes based on changes
+      netWorthSize = displayNetWorth > netWorth ? 1.0 : (displayNetWorth < netWorth ? 0.6 : 0.8);
+      expensesSize = 0.5 + Math.min(simulatedMonths * 0.05, 0.4);
+
+      const goalsProjected = simulatedState.projectedGoals.filter(g => g.projectedAmount >= g.targetAmount).length;
+      if (goalsProjected > 0) {
+        goalsValue = `${goalsProjected} Achieved in +${simulatedMonths}M`;
+        goalsSize = 0.8; // Grow if we hit goals!
+      } else {
+        goalsSize = 0.6 + Math.min(simulatedMonths * 0.02, 0.2); // Slowly gro as we make progress
+      }
+    }
+
     return [
-      { position: [3, 0.5, 0] as [number, number, number], color: "#22c55e", label: "Income", value: formatCurrency(income), link: "/transactions" },
-      { position: [-2.5, 1, 1.5] as [number, number, number], color: "#00d4ff", label: "Flux Pods", value: formatCurrency(podsAllocated), link: "/flux-pods" },
-      { position: [-1, -1.5, 2.5] as [number, number, number], color: "#f59e0b", label: "Goals", value: goals.length ? `${goals.length} Active` : "No Goals", link: "/goals" },
-      { position: [1.5, -1, -2.5] as [number, number, number], color: "#a855f7", label: "Net Worth", value: formatCurrency(netWorth), link: "/reports" },
-      { position: [-2, 0, -2] as [number, number, number], color: "#ef4444", label: "Expenses", value: formatCurrency(expenses), link: "/transactions" },
+      { position: [3, 0.5, 0] as [number, number, number], color: "#22c55e", label: "Income", value: formatCurrency(income), link: "/transactions", size: 0.5 },
+      { position: [-2.5, 1, 1.5] as [number, number, number], color: "#00d4ff", label: "Budget Ports", value: formatCurrency(podsAllocated), link: "/budget-ports", size: podsSize },
+      { position: [-1, -1.5, 2.5] as [number, number, number], color: "#f59e0b", label: "Goals", value: goalsValue, link: "/goals", size: goalsSize },
+      { position: [1.5, -1, -2.5] as [number, number, number], color: "#a855f7", label: "Net Worth", value: formatCurrency(displayNetWorth), link: "/reports", size: netWorthSize },
+      { position: [-2, 0, -2] as [number, number, number], color: "#ef4444", label: "Expenses", value: formatCurrency(displayExpenses), link: "/transactions", size: expensesSize },
     ];
-  }, [transactions, fluxPods, goals]);
+  }, [transactions, fluxPods, goals, simulatedMonths]);
+
+  // Hook to watch receiptData map to flux pod nodes
+  useEffect(() => {
+    if (receiptData?.items && receiptData.items.length > 0) {
+      // Find the budget pod node to act as the general direction if a specific pod isn't found
+      const budgetNode = nodes.find(n => n.label === "Budget Ports");
+      const defaultTarget = budgetNode?.position || [-2.5, 1, 1.5];
+
+      const newOrbs = receiptData.items.map((item, index) => {
+        // Here we could map item.category to specific sub-nodes, but for now they go into the general pods or expenses
+        const targetNode = nodes.find(n => n.label === "Budget Ports") || nodes[1];
+
+        return {
+          id: `orb-${Date.now()}-${index}`,
+          item,
+          startPos: [0, 0, 0] as [number, number, number], // Shatter from center core
+          endPos: targetNode.position as [number, number, number],
+          color: getCategoryColor(item.category),
+          delay: index * 0.3 // Stagger the animation
+        };
+      });
+
+      setActiveOrbs(newOrbs);
+    }
+  }, [receiptData, nodes]);
+
+  const handleOrbComplete = (orbId: string) => {
+    setActiveOrbs(prev => {
+      const remaining = prev.filter(o => o.id !== orbId);
+      if (remaining.length === 0 && onReceiptAnimationComplete) {
+        // Notify parent all animations finished
+        onReceiptAnimationComplete();
+      }
+      return remaining;
+    });
+  };
 
   return (
     <div className="w-full h-full min-h-[500px] relative">
@@ -383,8 +557,29 @@ export default function FinancialNexus() {
         style={{ background: "transparent" }}
       >
         <Scene nodes={nodes} onNodeClick={handleNodeClick} />
+
+        {/* Render Active Scattering Orbs */}
+        {activeOrbs.map(orb => (
+          <ReceiptOrb
+            key={orb.id}
+            startPos={orb.startPos}
+            endPos={orb.endPos}
+            color={orb.color}
+            delay={orb.delay}
+            onComplete={() => handleOrbComplete(orb.id)}
+          />
+        ))}
+
+        <OrbitControls
+          enablePan={false}
+          enableZoom={true}
+          minDistance={4}
+          maxDistance={12}
+          autoRotate={activeOrbs.length === 0} // pause rotation during scatter
+          autoRotateSpeed={0.5}
+        />
       </Canvas>
-      
+
       {/* Overlay gradient */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-background via-transparent to-transparent" />
     </div>

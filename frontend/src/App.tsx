@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Index from "./pages/index";
 import Transactions from "./pages/Transactions";
-import FluxPods from "./pages/FluxPods";
+import BudgetPorts from "./pages/BudgetPorts";
 import Goals from "./pages/Goals";
 import Companion from "./pages/Companion";
 import Reports from "./pages/Reports";
@@ -32,7 +32,7 @@ const App = () => (
           <Route path="/onboarding" element={<OnboardingSurvey />} />
           <Route path="/dashboard" element={<RequireOnboarding><Index /></RequireOnboarding>} />
           <Route path="/transactions" element={<RequireOnboarding><Transactions /></RequireOnboarding>} />
-          <Route path="/flux-pods" element={<RequireOnboarding><FluxPods /></RequireOnboarding>} />
+          <Route path="/budget-ports" element={<RequireOnboarding><BudgetPorts /></RequireOnboarding>} />
           <Route path="/goals" element={<RequireOnboarding><Goals /></RequireOnboarding>} />
           <Route path="/companion" element={<RequireOnboarding><Companion /></RequireOnboarding>} />
           <Route path="/reports" element={<RequireOnboarding><Reports /></RequireOnboarding>} />

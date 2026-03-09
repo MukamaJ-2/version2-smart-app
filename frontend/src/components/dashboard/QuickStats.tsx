@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { aiService } from "@/lib/ai/ai-service";
 
 interface Transaction {
   id: string;
@@ -42,7 +43,7 @@ const colorClasses = {
   },
 };
 
-export default function QuickStats() {
+export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: number }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -147,26 +148,45 @@ export default function QuickStats() {
       .filter((goal) => !Number.isNaN(goal.date.getTime()))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
     const nextDeadline = sortedDeadlines[0];
-    const daysToDeadline = nextDeadline
+    let daysToDeadline = nextDeadline
       ? Math.max(0, Math.ceil((nextDeadline.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
       : 0;
 
+    let displayBalance = balance;
+    let displayHealthScore = healthScore;
+    let displayOnTrackRatio = onTrackRatio;
+
+    if (simulatedMonths > 0) {
+      // Basic simulation mapping
+      const simulatedState = aiService.simulateFutureState(
+        simulatedMonths,
+        [], // we don't need pods for quick stats currently
+        goals.map(g => ({ ...g, targetAmount: 0, currentAmount: 0, monthlyContribution: 0 })), // mock for now, we just need net worth generally
+        balance
+      );
+      displayBalance = simulatedState.projectedNetWorth;
+      // If balance is going up, health is good.
+      displayHealthScore = Math.min(100, healthScore + (simulatedMonths * 2));
+      displayOnTrackRatio = Math.min(100, onTrackRatio + (simulatedMonths * 5));
+      daysToDeadline = Math.max(0, daysToDeadline - (simulatedMonths * 30));
+    }
+
     return [
       {
-        label: "Today's Balance",
-        value: new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(balance),
+        label: simulatedMonths > 0 ? `Projected Balance (+${simulatedMonths}M)` : "Today's Balance",
+        value: new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(displayBalance),
         change: income > 0 ? `+${new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(income)}` : "No income yet",
-        isPositive: income > 0 ? balance >= 0 : null,
+        isPositive: income > 0 ? displayBalance >= 0 : null,
         icon: Wallet,
-        color: "primary",
+        color: simulatedMonths > 0 && displayBalance < balance ? "secondary" : "primary",
         link: "/transactions",
       },
       {
-        label: "Monthly Health",
-        value: `${healthScore}`,
+        label: simulatedMonths > 0 ? "Projected Health" : "Monthly Health",
+        value: `${displayHealthScore}`,
         suffix: "/100",
-        change: income > 0 ? `${healthScore} pts` : "No data yet",
-        isPositive: income > 0 ? healthScore >= 50 : null,
+        change: income > 0 ? `${displayHealthScore} pts` : "No data yet",
+        isPositive: income > 0 ? displayHealthScore >= 50 : null,
         icon: Zap,
         color: "success",
         link: "/reports",
@@ -175,8 +195,8 @@ export default function QuickStats() {
         label: "Active Goals",
         value: `${activeGoals}`,
         suffix: " goals",
-        change: goals.length ? `${onTrackRatio}% on track` : "No goals yet",
-        isPositive: goals.length ? onTrackRatio >= 50 : null,
+        change: goals.length ? `${displayOnTrackRatio}% on track` : "No goals yet",
+        isPositive: goals.length ? displayOnTrackRatio >= 50 : null,
         icon: Target,
         color: "accent",
         link: "/goals",
@@ -192,7 +212,7 @@ export default function QuickStats() {
         link: "/goals",
       },
     ];
-  }, [transactions, goals, countdownNow]);
+  }, [transactions, goals, countdownNow, simulatedMonths]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -205,41 +225,41 @@ export default function QuickStats() {
             className="block"
           >
             <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
               className="glass-card rounded-xl p-4 hover:glass-card-glow transition-all duration-300 group cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className={`p-2 rounded-lg ${colors.bg} ${colors.glow} group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-4 h-4 ${colors.text}`} />
-              </div>
-              {stat.isPositive !== null && (
-                <div className={`flex items-center gap-1 text-xs ${stat.isPositive ? "text-success" : "text-destructive"}`}>
-                  {stat.isPositive ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                  <span>{stat.change}</span>
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className={`p-2 rounded-lg ${colors.bg} ${colors.glow} group-hover:scale-110 transition-transform`}>
+                  <stat.icon className={`w-4 h-4 ${colors.text}`} />
                 </div>
+                {stat.isPositive !== null && (
+                  <div className={`flex items-center gap-1 text-xs ${stat.isPositive ? "text-success" : "text-destructive"}`}>
+                    {stat.isPositive ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )}
+                    <span>{stat.change}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                {stat.label}
+              </p>
+              <div className="flex items-baseline gap-1">
+                <span className={`font-mono text-2xl font-bold ${colors.text} text-glow-sm`}>
+                  {stat.value}
+                </span>
+                {stat.suffix && (
+                  <span className="text-sm text-muted-foreground">{stat.suffix}</span>
+                )}
+              </div>
+              {stat.isPositive === null && (
+                <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
               )}
-            </div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              {stat.label}
-            </p>
-            <div className="flex items-baseline gap-1">
-              <span className={`font-mono text-2xl font-bold ${colors.text} text-glow-sm`}>
-                {stat.value}
-              </span>
-              {stat.suffix && (
-                <span className="text-sm text-muted-foreground">{stat.suffix}</span>
-              )}
-            </div>
-            {stat.isPositive === null && (
-              <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-            )}
-          </motion.div>
+            </motion.div>
           </Link>
         );
       })}

@@ -49,3 +49,11 @@ frontend/*.tsbuildinfo
 backend/training/__pycache__/
 backend/training/reports/*.html
 backend/training/reports/*.json
+
+# ML Models and Data
+*.safetensors
+*.pt
+*.pkl
+ml_pipeline/receipt_parser_model/
+data/*.csv
+!data/.keep
