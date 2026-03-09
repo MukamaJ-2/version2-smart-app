@@ -1,9 +1,0 @@
-# Core (required for training)
-numpy>=1.20,<3
-pandas>=1.3,<3
-
-# Kaggle dataset download (optional; required for pipeline/notebook download step)
-kagglehub>=0.2
-
-# Excel input (optional; required only if any dataset is .xlsx/.xls)
-openpyxl>=3.0
