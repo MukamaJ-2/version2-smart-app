@@ -1,0 +1,10 @@
+[
+  {
+    "prompt": "Given the following financial snapshot, generate 1-3 actionable insights. Use UGX for amounts. Be concise. Respond with a JSON array of objects, each with \"type\" (positive|warning|info), \"message\", and \"action\".\n\nFinancial snapshot:\nLatest month: Jan 2025\n  Income: 2,500,000 UGX\n  Expenses: 2,800,000 UGX\n  Savings rate: -12.0%\n  Top categories: Rent (1,200,000), Food (450,000), Transport (300,000)\n\nPrevious month: Dec 2024\n  Income: 2,400,000 UGX\n  Expenses: 2,100,000 UGX\n\nHistorical category averages (per month):\n  Rent: 1,100,000, Food: 400,000, Transport: 280,000",
+    "response": "[{\"type\": \"warning\", \"message\": \"You spent 12% more than you earned this month. Consider cutting non-essential expenses or using savings to cover the gap.\", \"action\": \"Review spending\"}, {\"type\": \"warning\", \"message\": \"Rent is 9% above your average. Check if any one-off costs inflated this month.\", \"action\": \"Review 'Rent' pod\"}]"
+  },
+  {
+    "prompt": "Given the following financial snapshot, generate 1-3 actionable insights. Use UGX for amounts. Be concise. Respond with a JSON array of objects, each with \"type\" (positive|warning|info), \"message\", and \"action\".\n\nFinancial snapshot:\nLatest month: Mar 2025\n  Income: 5,000,000 UGX\n  Expenses: 3,200,000 UGX\n  Savings rate: 36.0%\n  Top categories: Rent (1,500,000), Food (600,000), Savings (800,000)\n\nPrevious month: Feb 2025\n  Income: 4,800,000 UGX\n  Expenses: 3,500,000 UGX\n\nHistorical category averages (per month):\n  Rent: 1,400,000, Food: 550,000, Savings: 600,000",
+    "response": "[{\"type\": \"positive\", \"message\": \"Your savings rate increased by 8% this month compared to Feb 2025. Great progress!\", \"action\": \"Keep it up!\"}, {\"type\": \"positive\", \"message\": \"You've stayed under budget for 2 consecutive months. Excellent discipline!\", \"action\": \"View rewards\"}]"
+  }
+]

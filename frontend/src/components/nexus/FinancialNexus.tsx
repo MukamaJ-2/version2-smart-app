@@ -3,6 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Sphere, Html, Float } from "@react-three/drei";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { FEATURE_LABELS } from "@/lib/feature-labels";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { aiService } from "@/lib/ai/ai-service";
 import * as THREE from "three";
@@ -189,6 +190,54 @@ function OrbitRing({ radius, color, speed = 1, opacity = 0.3 }: { radius: number
   );
 }
 
+/* ───────── Floating Particles ───────── */
+
+function FloatingParticles({ count = 40, healthScore = 0.5 }: { count?: number; healthScore?: number }) {
+  const particlesRef = useRef<THREE.Points>(null);
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 14;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 14;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 14;
+    }
+    return arr;
+  }, [count]);
+
+  const particleColor = healthScore > 0.6 ? "#22c55e" : healthScore > 0.35 ? "#f59e0b" : "#ef4444";
+
+  useFrame((state) => {
+    if (particlesRef.current) {
+      const pos = particlesRef.current.geometry.attributes.position;
+      for (let i = 0; i < count; i++) {
+        const idx = i * 3;
+        (pos.array as Float32Array)[idx + 1] += Math.sin(state.clock.elapsedTime * 0.5 + i) * 0.003;
+        (pos.array as Float32Array)[idx] += Math.cos(state.clock.elapsedTime * 0.3 + i * 0.7) * 0.002;
+      }
+      pos.needsUpdate = true;
+    }
+  });
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return geo;
+  }, [positions]);
+
+  return (
+    <points ref={particlesRef} geometry={geometry}>
+      <pointsMaterial
+        color={particleColor}
+        size={0.06}
+        transparent
+        opacity={0.5}
+        sizeAttenuation
+      />
+    </points>
+  );
+}
+
 function DataFlowLine({ start, end, color }: { start: [number, number, number]; end: [number, number, number]; color: string }) {
   const lineRef = useRef<THREE.Line>(null);
 
@@ -270,25 +319,34 @@ function CentralCore() {
 function Scene({
   nodes,
   onNodeClick,
+  healthScore = 0.5,
 }: {
   nodes: NexusNodeProps[];
   onNodeClick?: (link: string) => void;
+  healthScore?: number;
 }) {
+  // Health-based orbit ring colors
+  const orbitColor1 = healthScore > 0.6 ? "#22c55e" : healthScore > 0.35 ? "#f59e0b" : "#ef4444";
+  const orbitColor2 = "#a855f7";
+  const orbitColor3 = healthScore > 0.5 ? "#00d4ff" : "#f59e0b";
 
   return (
     <>
       {/* Lighting */}
       <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="#00d4ff" />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
+      <pointLight position={[10, 10, 10]} intensity={1} color={orbitColor1} />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} color={orbitColor2} />
 
       {/* Central Core */}
       <CentralCore />
 
-      {/* Orbit Rings */}
-      <OrbitRing radius={2} color="#00d4ff" speed={0.5} opacity={0.2} />
-      <OrbitRing radius={3.5} color="#a855f7" speed={-0.3} opacity={0.15} />
-      <OrbitRing radius={5} color="#f59e0b" speed={0.2} opacity={0.1} />
+      {/* Floating Particles */}
+      <FloatingParticles count={50} healthScore={healthScore} />
+
+      {/* Orbit Rings — colors shift with health */}
+      <OrbitRing radius={2} color={orbitColor1} speed={0.5} opacity={0.2} />
+      <OrbitRing radius={3.5} color={orbitColor2} speed={-0.3} opacity={0.15} />
+      <OrbitRing radius={5} color={orbitColor3} speed={0.2} opacity={0.1} />
 
       {/* Nodes */}
       {nodes.map((node, index) => (
@@ -479,6 +537,10 @@ export default function FinancialNexus({
     let displayExpenses = expenses;
     let goalsValue = goals.length ? `${goals.length} Active` : "No Goals";
 
+    // Health-based expense node coloring
+    const expenseRatio = income > 0 ? expenses / income : 0;
+    const expenseColor = expenseRatio > 0.95 ? "#ef4444" : expenseRatio > 0.8 ? "#f59e0b" : "#ef4444";
+
     if (simulatedMonths > 0) {
       const simulatedState = aiService.simulateFutureState(
         simulatedMonths,
@@ -506,23 +568,32 @@ export default function FinancialNexus({
 
     return [
       { position: [3, 0.5, 0] as [number, number, number], color: "#22c55e", label: "Income", value: formatCurrency(income), link: "/transactions", size: 0.5 },
-      { position: [-2.5, 1, 1.5] as [number, number, number], color: "#00d4ff", label: "Budget Ports", value: formatCurrency(podsAllocated), link: "/budget-ports", size: podsSize },
+      { position: [-2.5, 1, 1.5] as [number, number, number], color: "#00d4ff", label: FEATURE_LABELS.budgets, value: formatCurrency(podsAllocated), link: "/budget-ports", size: podsSize },
       { position: [-1, -1.5, 2.5] as [number, number, number], color: "#f59e0b", label: "Goals", value: goalsValue, link: "/goals", size: goalsSize },
-      { position: [1.5, -1, -2.5] as [number, number, number], color: "#a855f7", label: "Net Worth", value: formatCurrency(displayNetWorth), link: "/reports", size: netWorthSize },
-      { position: [-2, 0, -2] as [number, number, number], color: "#ef4444", label: "Expenses", value: formatCurrency(displayExpenses), link: "/transactions", size: expensesSize },
+      { position: [1.5, -1, -2.5] as [number, number, number], color: "#a855f7", label: "Money left", value: formatCurrency(displayNetWorth), link: "/reports", size: netWorthSize },
+      { position: [-2, 0, -2] as [number, number, number], color: expenseColor, label: "Expenses", value: formatCurrency(displayExpenses), link: "/transactions", size: expensesSize },
     ];
   }, [transactions, fluxPods, goals, simulatedMonths]);
+
+  // Compute health score for scene effects
+  const healthScore = useMemo(() => {
+    const income = transactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
+    const expenses = transactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
+    if (income <= 0) return 0.5;
+    const savingsRate = Math.max(0, (income - expenses) / income);
+    return Math.min(1, savingsRate * 2); // normalize: 50% savings rate = 1.0
+  }, [transactions]);
 
   // Hook to watch receiptData map to flux pod nodes
   useEffect(() => {
     if (receiptData?.items && receiptData.items.length > 0) {
       // Find the budget pod node to act as the general direction if a specific pod isn't found
-      const budgetNode = nodes.find(n => n.label === "Budget Ports");
+      const budgetNode = nodes.find(n => n.label === FEATURE_LABELS.budgets);
       const defaultTarget = budgetNode?.position || [-2.5, 1, 1.5];
 
       const newOrbs = receiptData.items.map((item, index) => {
         // Here we could map item.category to specific sub-nodes, but for now they go into the general pods or expenses
-        const targetNode = nodes.find(n => n.label === "Budget Ports") || nodes[1];
+        const targetNode = nodes.find(n => n.label === FEATURE_LABELS.budgets) || nodes[1];
 
         return {
           id: `orb-${Date.now()}-${index}`,
@@ -550,13 +621,13 @@ export default function FinancialNexus({
   };
 
   return (
-    <div className="w-full h-full min-h-[500px] relative">
+    <div className="w-full h-full min-h-[200px] relative">
       <Canvas
         camera={{ position: [0, 3, 8], fov: 50 }}
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
       >
-        <Scene nodes={nodes} onNodeClick={handleNodeClick} />
+        <Scene nodes={nodes} onNodeClick={handleNodeClick} healthScore={healthScore} />
 
         {/* Render Active Scattering Orbs */}
         {activeOrbs.map(orb => (

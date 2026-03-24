@@ -255,7 +255,7 @@ export default function Auth() {
             UniGuard Wallet
           </h1>
           <p className="text-muted-foreground text-sm">
-            Your secure financial command center
+            Your money, organized and private
           </p>
         </motion.div>
 

@@ -1,13 +1,15 @@
 {
   "name": "UniGuard Wallet",
   "short_name": "UniGuard",
-  "description": "Secure, intelligent finance hub with real-time insights and personalized guidance.",
-  "start_url": "/",
+  "description": "Track spending, budgets, and goals with clear summaries and a simple money coach.",
+  "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0a0e17",
   "theme_color": "#14b8a6",
   "scope": "/",
+  "categories": ["finance", "productivity"],
+  "lang": "en",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,6 +22,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Transaction",
+      "short_name": "Add",
+      "description": "Quick-add a new transaction",
+      "url": "/transactions?quick=1",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "View Goals",
+      "short_name": "Goals",
+      "description": "Check savings goals progress",
+      "url": "/goals",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Money coach",
+      "short_name": "Coach",
+      "description": "Ask questions about your money in plain language",
+      "url": "/companion",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

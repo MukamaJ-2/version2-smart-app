@@ -50,7 +50,24 @@ export default function Settings() {
     }, 500);
   };
 
-  const [notifications, setNotifications] = useState({
+  const SETTINGS_KEY = "uniguard.settings";
+
+  const loadStoredSettings = () => {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return {
+        notifications: { email: true, push: false, sms: false, budgetAlerts: true, goalReminders: true, weeklyReports: true, ...data.notifications },
+        preferences: { currency: "UGX", dateFormat: "DD/MM/YYYY", language: "en", ...data.preferences },
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const stored = loadStoredSettings();
+  const [notifications, setNotifications] = useState(stored?.notifications ?? {
     email: true,
     push: false,
     sms: false,
@@ -59,11 +76,17 @@ export default function Settings() {
     weeklyReports: true,
   });
 
-  const [preferences, setPreferences] = useState({
+  const [preferences, setPreferences] = useState(stored?.preferences ?? {
     currency: "UGX",
     dateFormat: "DD/MM/YYYY",
     language: "en",
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ notifications, preferences }));
+    } catch {}
+  }, [notifications, preferences]);
 
   const [profile, setProfile] = useState({
     name: "",
@@ -71,6 +94,8 @@ export default function Settings() {
     phone: "",
   });
   const [userId, setUserId] = useState<string | null>(null);
+  const [passwordForm, setPasswordForm] = useState({ newPassword: "", confirmPassword: "" });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const avatarInitials = useMemo(() => {
     const base = profile.name || profile.email;
     if (!base) return "U";
@@ -178,7 +203,7 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 space-y-6 max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-4xl mx-auto">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -513,30 +538,61 @@ export default function Settings() {
                   <div className="space-y-3">
                     <Input
                       type="password"
-                      placeholder="Current password"
-                      className="bg-muted/30 border-border"
-                    />
-                    <Input
-                      type="password"
                       placeholder="New password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) =>
+                        setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
+                      }
                       className="bg-muted/30 border-border"
+                      minLength={6}
                     />
                     <Input
                       type="password"
                       placeholder="Confirm new password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) =>
+                        setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
+                      }
                       className="bg-muted/30 border-border"
+                      minLength={6}
                     />
                   </div>
-                  <Button 
+                  <Button
                     className="mt-3 bg-gradient-primary hover:opacity-90"
-                    onClick={() => {
+                    disabled={
+                      isUpdatingPassword ||
+                      !passwordForm.newPassword ||
+                      passwordForm.newPassword !== passwordForm.confirmPassword ||
+                      passwordForm.newPassword.length < 6
+                    }
+                    onClick={async () => {
+                      if (
+                        !passwordForm.newPassword ||
+                        passwordForm.newPassword !== passwordForm.confirmPassword ||
+                        passwordForm.newPassword.length < 6
+                      )
+                        return;
+                      setIsUpdatingPassword(true);
+                      const { error } = await supabase.auth.updateUser({
+                        password: passwordForm.newPassword,
+                      });
+                      setIsUpdatingPassword(false);
+                      if (error) {
+                        toast({
+                          title: "Password update failed",
+                          description: error.message,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setPasswordForm({ newPassword: "", confirmPassword: "" });
                       toast({
                         title: "Password updated",
                         description: "Your password has been changed successfully.",
                       });
                     }}
                   >
-                    Update Password
+                    {isUpdatingPassword ? "Updating…" : "Update Password"}
                   </Button>
                 </div>
 
@@ -614,15 +670,32 @@ export default function Settings() {
                       Download all your financial data as JSON or CSV
                     </p>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="border-border hover:border-primary/50"
-                    onClick={() => {
-                      const dataStr = JSON.stringify(
-                        { profile, preferences: { ...preferences, theme: theme ?? "system" }, notifications },
-                        null,
-                        2
-                      );
+                    onClick={async () => {
+                      const payload: Record<string, unknown> = {
+                        exportedAt: new Date().toISOString(),
+                        profile,
+                        preferences: { ...preferences, theme: theme ?? "system" },
+                        notifications,
+                      };
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (user) {
+                        const [txRes, goalsRes, vaultsRes, podsRes, receiptsRes] = await Promise.all([
+                          supabase.from("transactions").select("*").eq("user_id", user.id),
+                          supabase.from("goals").select("*").eq("user_id", user.id),
+                          supabase.from("savings_vaults").select("*").eq("user_id", user.id),
+                          supabase.from("flux_pods").select("*").eq("user_id", user.id),
+                          supabase.from("receipts").select("*").eq("user_id", user.id),
+                        ]);
+                        payload.transactions = txRes.data ?? [];
+                        payload.goals = goalsRes.data ?? [];
+                        payload.savings_vaults = vaultsRes.data ?? [];
+                        payload.flux_pods = podsRes.data ?? [];
+                        payload.receipts = receiptsRes.data ?? [];
+                      }
+                      const dataStr = JSON.stringify(payload, null, 2);
                       const dataBlob = new Blob([dataStr], { type: "application/json" });
                       const url = URL.createObjectURL(dataBlob);
                       const link = document.createElement("a");

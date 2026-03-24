@@ -5,11 +5,17 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import FinancialNexus from "@/components/nexus/FinancialNexus";
 import { TimeMachineControls } from "@/components/nexus/TimeMachineControls";
+import { TimeMachineInsights } from "@/components/nexus/TimeMachineInsights";
 import AppLayout from "@/components/layout/AppLayout";
 import QuickStats from "@/components/dashboard/QuickStats";
-import FluxPodPreview from "@/components/dashboard/FluxPodPreview";
+import { FinancialWellnessScore } from "@/components/dashboard/FinancialWellnessScore";
+import BudgetPortPreview from "@/components/dashboard/BudgetPortPreview";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
+import { SmartPredictionsFeed } from "@/components/dashboard/SmartPredictionsFeed";
 import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
+import AnomalySummaryCard from "@/components/dashboard/AnomalySummaryCard";
+import SpendingAlertsCard from "@/components/dashboard/SpendingAlertsCard";
+import BudgetOverAlertBanner from "@/components/dashboard/BudgetOverAlertBanner";
 import { Button } from "@/components/ui/button";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { OnboardingAnswers } from "@/lib/onboarding";
@@ -65,44 +71,47 @@ export default function Index() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 space-y-6">
+      <div className="min-h-screen p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">
+          <div className="min-w-0">
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">
               {profile?.name ? (
                 <>Welcome back, {profile.name.split(/\s+/)[0]}</>
               ) : (
-                "Uniguard Hub"
+                "Home"
               )}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1 truncate">
               {lifeStageLabel
-                ? `Your financial command center · ${lifeStageLabel}`
-                : "Your financial command center"}
+                ? `Everything about your money in one place · ${lifeStageLabel}`
+                : "Everything about your money in one place"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="icon"
-              className="border-border hover:border-primary/50"
+              className="h-11 w-11 sm:h-9 sm:w-9 border-border hover:border-primary/50 touch-manipulation"
               onClick={() => setTheme(isDark ? "light" : "dark")}
               aria-label="Toggle theme"
               title={isDark ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <div className="flex items-center gap-2 glass-card px-4 py-2 rounded-xl">
-              <Activity className="w-4 h-4 text-success animate-pulse" />
-              <span className="text-sm font-mono text-foreground">System Online</span>
+            <div className="flex items-center gap-2 glass-card px-3 sm:px-4 py-2 rounded-xl min-h-[44px] sm:min-h-0">
+              <Activity className="w-4 h-4 text-success animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-mono text-foreground hidden sm:inline">Ready</span>
             </div>
           </div>
         </motion.header>
+
+        {/* Budget over-spending alert */}
+        <BudgetOverAlertBanner />
 
         {/* Quick Stats */}
         <QuickStats simulatedMonths={simulatedMonths} />
@@ -113,16 +122,19 @@ export default function Index() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="glass-card rounded-xl p-4 border border-border"
+            className="glass-card rounded-2xl p-5 border border-border/60 shadow-lg shadow-primary/5"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
                   <User className="w-4 h-4 text-primary" />
                 </div>
-                <h2 className="font-display text-sm font-semibold text-foreground">
-                  Based on your profile
-                </h2>
+                <div>
+                  <h2 className="font-display text-sm font-bold text-foreground tracking-tight">
+                    Based on your profile
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Personalized insights</p>
+                </div>
               </div>
               <Link
                 to="/onboarding?edit=1"
@@ -188,45 +200,70 @@ export default function Index() {
         )}
 
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* 3D Finance Overview */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="xl:col-span-2 glass-card rounded-2xl overflow-hidden relative scan-line"
-          >
-            <div className="absolute top-4 left-4 z-10">
-              <h2 className="font-display text-sm font-semibold text-foreground/80 uppercase tracking-wider">
-                Finance Overview
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">Interactive 3D visualization</p>
-            </div>
-            <div className="h-[500px]">
-              <FinancialNexus
-                simulatedMonths={simulatedMonths}
-              />
-            </div>
-            {/* Time Machine Simulator */}
-            <div className="p-4 border-t border-border/50 bg-background/50">
-              <TimeMachineControls
-                simulatedMonthsIntoFuture={simulatedMonths}
-                onMonthsChange={setSimulatedMonths}
-              />
-            </div>
-          </motion.div>
+        {/* Money map + past/future slider (full width) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="glass-card rounded-2xl overflow-hidden relative scan-line min-h-0"
+        >
+          <div className="absolute top-4 left-4 z-10">
+            <h2 className="font-display text-sm font-semibold text-foreground/80 uppercase tracking-wider">
+              Your money map
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Tap a bubble to open that area</p>
+          </div>
+          <div className="h-[260px] sm:h-[360px] xl:h-[420px] min-h-[260px]">
+            <FinancialNexus
+              simulatedMonths={simulatedMonths}
+            />
+          </div>
+          {/* Look back / ahead slider */}
+          <div className="p-3 sm:p-4 border-t border-border/50 bg-background/50 min-w-0 overflow-x-hidden">
+            <TimeMachineControls
+              simulatedMonthsIntoFuture={simulatedMonths}
+              onMonthsChange={setSimulatedMonths}
+            />
+            <TimeMachineInsights simulatedMonths={simulatedMonths} />
+          </div>
+        </motion.div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Flux Pods Preview */}
-            <FluxPodPreview />
-
-            {/* Recent Activity */}
-            <RecentTransactions />
-
-            {/* Notifications */}
-            <NotificationsPanel />
+        {/* Cards grid - fills all available space, uniform rows, scroll when content overflows */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 [grid-auto-rows:minmax(280px,1fr)]">
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <FinancialWellnessScore />
+            </div>
+          </div>
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <BudgetPortPreview />
+            </div>
+          </div>
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <RecentTransactions />
+            </div>
+          </div>
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <SmartPredictionsFeed />
+            </div>
+          </div>
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <AnomalySummaryCard />
+            </div>
+          </div>
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <SpendingAlertsCard />
+            </div>
+          </div>
+          <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <NotificationsPanel />
+            </div>
           </div>
         </div>
 

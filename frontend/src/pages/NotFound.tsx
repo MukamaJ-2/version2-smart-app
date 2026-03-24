@@ -101,11 +101,11 @@ const NotFound = () => {
             className="mt-12 glass-card rounded-xl p-6"
           >
             <p className="text-sm text-muted-foreground mb-4">
-              Quick Links
+              Useful links
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link to="/dashboard" className="text-xs text-primary hover:text-primary-glow transition-colors">
-                Uniguard Hub
+                Home
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link to="/transactions" className="text-xs text-primary hover:text-primary-glow transition-colors">
@@ -113,7 +113,7 @@ const NotFound = () => {
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link to="/budget-ports" className="text-xs text-primary hover:text-primary-glow transition-colors">
-                Budget Ports
+                Budgets
               </Link>
               <span className="text-muted-foreground">•</span>
               <Link to="/goals" className="text-xs text-primary hover:text-primary-glow transition-colors">

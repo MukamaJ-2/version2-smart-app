@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -42,12 +42,19 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { aiService } from "@/lib/ai/ai-service";
-import { detectAnomaly } from "@/lib/ai/models/anomaly-detector";
+import { detectAnomalyWithModel, recordFalsePositive, type AnomalyResult } from "@/lib/ai/models/anomaly-detector";
 import type { TrainingTransaction } from "@/lib/ai/training-data";
 import { Badge } from "@/components/ui/badge";
 import { addNotification, getUserEmail, markEmailSent, wasEmailSent } from "@/lib/notifications";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { ReceiptScanner } from "@/components/dashboard/ReceiptScanner";
+import RecurringTransactionsCard from "@/components/dashboard/RecurringTransactionsCard";
+import {
+  wouldExceedBudget,
+  getExpenseBudgetHeadroom,
+  getExpenseBudgetRequirementMessage,
+  formatCurrency as formatBudgetCurrency,
+} from "@/lib/budget-alerts";
 
 const categoryIcons: Record<string, typeof Coffee> = {
   Rent: Home,
@@ -160,41 +167,52 @@ interface ParsedTransaction {
 const APP_CATEGORIES = Object.keys(categoryIcons);
 
 async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction & { confidence?: number }) | null> {
-  const lower = input.toLowerCase();
-  const amountMatch = input.match(/(\d+(?:\.\d+)?)\s*(k|K|thousand|thousands)?/i);
-  if (!amountMatch) return null;
-  let amount = parseFloat(amountMatch[1]);
-  if (amountMatch[2] && /k|thousand/i.test(amountMatch[2])) {
-    amount *= 1000;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  const lower = trimmed.toLowerCase();
+  const amountMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*(k|K|thousand|thousands)?/i);
+  let amount = 0;
+  if (amountMatch) {
+    amount = parseFloat(amountMatch[1]);
+    if (amountMatch[2] && /k|thousand/i.test(amountMatch[2])) {
+      amount *= 1000;
+    }
   }
+
   const isIncome = /received|income|salary|payment|deposit|earned|got|refund/i.test(lower);
   const isExpense = /spent|bought|purchase|paid|expense|cost/i.test(lower);
   const type: "income" | "expense" = isIncome ? "income" : (isExpense ? "expense" : "expense");
-  
-  // Call real AI backend
+
+  // Predict category from text alone (no amount required)
   let category = "Miscellaneous";
-  let confidence = undefined;
+  let confidence: number | undefined;
   try {
-    const aiResponse = await fetch("http://127.0.0.1:5000/api/v1/categorize", {
+    const aiResponse = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input })
+      body: JSON.stringify({ text: trimmed }),
     });
-    
+
     if (aiResponse.ok) {
       const aiResult = await aiResponse.json();
-      category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+      let raw = aiResult.category;
+      if (raw === "Healthcare") raw = "Health";
+      if (raw === "Gifts & Donations") raw = "Gifts / Donations";
+      category = APP_CATEGORIES.includes(raw) ? raw : "Miscellaneous";
       confidence = aiResult.confidence;
     }
   } catch (error) {
     console.error("Failed to fetch ML categorization:", error);
-    // Fallback to local deterministic aiService if backend is down
-    const aiResult = aiService.categorizeTransaction(input, amount, undefined, type);
-    category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+    const aiResult = aiService.categorizeTransaction(trimmed, amount || 1, undefined, type);
+    let raw = aiResult.category;
+    if (raw === "Healthcare") raw = "Health";
+    if (raw === "Gifts & Donations") raw = "Gifts / Donations";
+    category = APP_CATEGORIES.includes(raw) ? raw : "Miscellaneous";
     confidence = aiResult.confidence;
   }
 
-  let description = input.trim();
+  let description = trimmed;
   if (description.length > 50) {
     description = description.substring(0, 50) + "...";
   }
@@ -202,8 +220,24 @@ async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction &
 }
 const QUICK_ENTRY_DEBOUNCE_MS = 350;
 
-function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Transaction) => void }) {
+type TxForBudget = { category: string; amount: number; type: string };
+type PodForBudget = { id: string; name: string; allocated: number; spent: number };
+
+function QuickEntry({
+  onClose,
+  onAdd,
+  transactions,
+  fluxPods,
+  fluxPodsLoaded,
+}: {
+  onClose: () => void;
+  onAdd: (tx: Transaction) => void;
+  transactions: TxForBudget[];
+  fluxPods: PodForBudget[];
+  fluxPodsLoaded: boolean;
+}) {
   const [input, setInput] = useState("");
+  const [manualAmount, setManualAmount] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [parsed, setParsed] = useState<(ParsedTransaction & { confidence?: number }) | null>(null);
@@ -224,18 +258,59 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
   useEffect(() => {
     return () => {};
   }, [receiptUrl]);
-  
+
+  const effectiveAmount = (() => {
+    if (manualAmount.trim()) {
+      const m = manualAmount.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*(k|K)?/i);
+      if (m) {
+        let a = parseFloat(m[1]);
+        if (m[2] && /k/i.test(m[2])) a *= 1000;
+        return a;
+      }
+    }
+    return parsed?.amount ?? 0;
+  })();
+
+  const budgetHeadroom = useMemo(() => {
+    if (!parsed || parsed.type !== "expense" || effectiveAmount <= 0 || fluxPods.length === 0) return null;
+    return getExpenseBudgetHeadroom(fluxPods, transactions, {
+      category: parsed.category,
+      amount: effectiveAmount,
+    });
+  }, [parsed, effectiveAmount, fluxPods, transactions]);
+
+  const expenseBudgetRequirementMessage =
+    parsed?.type === "expense"
+      ? getExpenseBudgetRequirementMessage(fluxPods, parsed.category, fluxPodsLoaded)
+      : null;
+
   const handleAdd = () => {
     if (!parsed) return;
-    
+    if (effectiveAmount <= 0) {
+      toast({
+        title: "Amount required",
+        description: "Enter the amount in the text (e.g. '5000') or in the Amount field.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (parsed.type === "expense" && expenseBudgetRequirementMessage) {
+      toast({
+        title: "Budget required",
+        description: expenseBudgetRequirementMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const now = new Date();
-    const date = now.toISOString().split('T')[0];
-    const time = now.toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit', hour12: false });
-    
+    const date = now.toISOString().split("T")[0];
+    const time = now.toLocaleTimeString("en-UG", { hour: "2-digit", minute: "2-digit", hour12: false });
+
     const newTransaction: Transaction = {
       id: Date.now().toString(),
       description: parsed.description,
-      amount: parsed.amount,
+      amount: effectiveAmount,
       type: parsed.type,
       category: parsed.category,
       date,
@@ -244,9 +319,10 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
       receiptName: receiptFile?.name,
       receiptType: receiptFile?.type,
     };
-    
+
     onAdd(newTransaction);
     setInput("");
+    setManualAmount("");
     setReceiptFile(null);
     setReceiptUrl(null);
     onClose();
@@ -278,7 +354,7 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder='Try: "spent 450 on coffee today" or "received 45k freelance"'
+              placeholder='e.g. "bought pain killers at pharmacy" or "spent 450 on coffee"'
               className="w-full px-4 py-3 bg-muted/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               autoFocus
             />
@@ -295,6 +371,21 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
             >
               <Mic className="w-4 h-4" />
             </Button>
+          </div>
+
+          {/* Optional Amount (when not in text) */}
+          <div className="space-y-2">
+            <Label htmlFor="manual-amount" className="text-xs text-muted-foreground uppercase tracking-wider">
+              Amount (optional if in text above)
+            </Label>
+            <Input
+              id="manual-amount"
+              type="text"
+              value={manualAmount}
+              onChange={(e) => setManualAmount(e.target.value)}
+              placeholder="e.g. 5000 or 10k"
+              className="bg-muted/30 border-border"
+            />
           </div>
 
           {/* Receipt Upload */}
@@ -361,7 +452,7 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
             >
               <p className="text-xs text-primary uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Sparkles className="w-3 h-3" />
-                AI Parsing Preview
+                Preview from scan
               </p>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -378,7 +469,10 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
                 </div>
                 <span className={cn("font-mono", parsed.type === "income" ? "text-success" : "text-destructive")}>
                   {parsed.type === "income" ? "+" : "-"}
-                  {formatCurrency(parsed.amount)}
+                  {formatCurrency(effectiveAmount)}
+                  {effectiveAmount === 0 && (
+                    <span className="text-muted-foreground text-xs ml-1">(add amount)</span>
+                  )}
                 </span>
               </div>
               <div className="flex items-center justify-between mt-2">
@@ -389,6 +483,36 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
                   </Badge>
                 )}
               </div>
+              {parsed.type === "expense" && budgetHeadroom && effectiveAmount > 0 && (
+                <div
+                  className={cn(
+                    "mt-3 rounded-lg border px-3 py-2 text-xs",
+                    budgetHeadroom.overBy > 0
+                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-success/30 bg-success/10 text-foreground"
+                  )}
+                >
+                  {budgetHeadroom.overBy > 0 ? (
+                    <p>
+                      This would put your <strong>{budgetHeadroom.podName}</strong> budget{" "}
+                      <strong>{formatBudgetCurrency(budgetHeadroom.overBy)}</strong> over your limit (
+                      {formatBudgetCurrency(budgetHeadroom.allocated)} planned).
+                    </p>
+                  ) : (
+                    <p>
+                      Your <strong>{budgetHeadroom.podName}</strong> budget:{" "}
+                      <strong>{formatBudgetCurrency(budgetHeadroom.remainingBefore)}</strong> left before this
+                      entry, <strong>{formatBudgetCurrency(budgetHeadroom.remainingAfter)}</strong> after (
+                      limit {formatBudgetCurrency(budgetHeadroom.allocated)}).
+                    </p>
+                  )}
+                </div>
+              )}
+              {parsed.type === "expense" && fluxPodsLoaded && expenseBudgetRequirementMessage && (
+                <p className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {expenseBudgetRequirementMessage} This expense can’t be added until a matching budget exists.
+                </p>
+              )}
             </motion.div>
           )}
 
@@ -403,7 +527,7 @@ function QuickEntry({ onClose, onAdd }: { onClose: () => void; onAdd: (tx: Trans
             </Button>
             <Button
               className="flex-1 bg-gradient-primary hover:opacity-90"
-              disabled={!parsed}
+              disabled={!parsed || !!expenseBudgetRequirementMessage}
               onClick={handleAdd}
             >
               Add Transaction
@@ -433,8 +557,10 @@ export default function Transactions() {
   const [showFilters, setShowFilters] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
-  const [anomalies, setAnomalies] = useState<Record<string, { isAnomaly: boolean; severity: string; reason: string }>>({});
+  const [anomalies, setAnomalies] = useState<Record<string, AnomalyResult & { isAnomaly: boolean; severity: string; reason: string }>>({});
   const [recategorizing, setRecategorizing] = useState(false);
+  const [fluxPods, setFluxPods] = useState<{ id: string; name: string; allocated: number; spent: number }[]>([]);
+  const [fluxPodsLoaded, setFluxPodsLoaded] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -476,6 +602,34 @@ export default function Transactions() {
   }, []);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setFluxPods([]);
+      setFluxPodsLoaded(false);
+      return;
+    }
+    if (!userId) {
+      setFluxPods([]);
+      setFluxPodsLoaded(false);
+      return;
+    }
+    let cancelled = false;
+    setFluxPodsLoaded(false);
+    const loadPods = async () => {
+      const { data } = await supabase
+        .from("flux_pods")
+        .select("id,name,allocated,spent")
+        .eq("user_id", userId);
+      if (cancelled) return;
+      setFluxPods((data ?? []) as { id: string; name: string; allocated: number; spent: number }[]);
+      setFluxPodsLoaded(true);
+    };
+    loadPods();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, isSupabaseConfigured]);
+
+  useEffect(() => {
     if (!userId || !isSupabaseConfigured) return;
     const channel = supabase
       .channel("transactions-realtime")
@@ -512,65 +666,86 @@ export default function Transactions() {
       type: tx.type,
       date: tx.date,
     }));
-    
+
     const incomeTotal = trainingData
       .filter((tx) => tx.type === "income")
       .reduce((sum, tx) => sum + tx.amount, 0);
     aiService.initialize(trainingData, incomeTotal);
-    
-    // Detect anomalies
-    const anomalyMap: Record<string, { isAnomaly: boolean; severity: string; reason: string }> = {};
-    transactions.forEach((tx) => {
-      const trainingTx: TrainingTransaction = {
-        description: tx.description,
-        amount: tx.amount,
-        category: tx.category,
-        type: tx.type,
-        date: tx.date,
-      };
-      const result = detectAnomaly(trainingTx, trainingData);
-      if (result.isAnomaly) {
-        anomalyMap[tx.id] = {
-          isAnomaly: true,
-          severity: result.severity,
-          reason: result.reason,
-        };
 
-        const notificationId = `anomaly-${tx.id}`;
-        addNotification(
-          {
-            id: notificationId,
-            type: "anomaly",
-            title: "Anomaly detected",
-            message: result.reason,
-            createdAt: new Date().toISOString(),
-          },
-          userId
-        );
+    let cancelled = false;
+    (async () => {
+      const anomalyMap: Record<string, AnomalyResult & { isAnomaly: boolean; severity: string; reason: string }> = {};
+      const today = new Date().toISOString().split("T")[0];
+      const results = await Promise.all(
+        transactions.map((tx) => {
+          const trainingTx: TrainingTransaction = {
+            description: tx.description,
+            amount: tx.amount,
+            category: tx.category,
+            type: tx.type,
+            date: tx.date,
+          };
+          return detectAnomalyWithModel(trainingTx, trainingData).then((result) => ({ tx, result }));
+        })
+      );
+      if (cancelled) return;
+      for (const { tx, result } of results) {
+        if (result.isAnomaly) {
+          anomalyMap[tx.id] = {
+            ...result,
+            isAnomaly: true,
+            severity: result.severity,
+            reason: result.reason,
+          };
 
-        if (!wasEmailSent(notificationId, userId)) {
-          const to = getUserEmail();
-          if (to) {
-            fetch(import.meta.env.VITE_NOTIFICATION_API_URL ?? "http://localhost:5174/api/notifications", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                to,
-                subject: "UniGuard Wallet anomaly detected",
-                text: result.reason,
-              }),
-            })
-              .then(() => {
-                markEmailSent(notificationId, userId);
+          const notificationId = `anomaly-${tx.id}`;
+          addNotification(
+            {
+              id: notificationId,
+              type: "anomaly",
+              title: "Unusual spending",
+              message: result.reason,
+              createdAt: new Date().toISOString(),
+            },
+            userId
+          );
+
+          // Only send email for anomalies on today's transactions,
+          // to avoid spamming the user for all historical anomalies.
+          const emailAlertsOn = !["0", "false", "no", "off"].includes(
+            String(import.meta.env.VITE_ENABLE_EMAIL_ALERTS ?? "true").trim().toLowerCase()
+          );
+          if (
+            emailAlertsOn &&
+            tx.date === today &&
+            !wasEmailSent(notificationId, userId)
+          ) {
+            const to = getUserEmail();
+            if (to) {
+              fetch(import.meta.env.VITE_NOTIFICATION_API_URL ?? "http://localhost:5174/api/notifications", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  to,
+                  subject: "UniGuard Wallet: unusual spending flagged",
+                  text: result.reason,
+                }),
               })
-              .catch((error) => {
-                console.error("Failed to send notification email", error);
-              });
+                .then(() => {
+                  markEmailSent(notificationId, userId);
+                })
+                .catch((error) => {
+                  console.error("Failed to send notification email", error);
+                });
+            }
           }
         }
       }
-    });
-    setAnomalies(anomalyMap);
+      setAnomalies(anomalyMap);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [transactions]);
 
   useEffect(() => {
@@ -593,6 +768,17 @@ export default function Transactions() {
         variant: "destructive",
       });
       return;
+    }
+    if (tx.type === "expense") {
+      const budgetMsg = getExpenseBudgetRequirementMessage(fluxPods, tx.category, fluxPodsLoaded);
+      if (budgetMsg) {
+        toast({
+          title: "Budget required",
+          description: budgetMsg,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     const { data, error } = await supabase
       .from("transactions")
@@ -620,10 +806,47 @@ export default function Transactions() {
     }
     const saved = mapTransactionRow(data as TransactionRow);
     setTransactions((prev) => [saved, ...prev]);
-    toast({
-      title: "Transaction added",
-      description: `${saved.type === "income" ? "Income" : "Expense"} of ${formatCurrency(saved.amount)} has been added.`,
-    });
+
+    if (saved.type === "expense" && fluxPods.length > 0) {
+      const over = wouldExceedBudget(
+        fluxPods,
+        transactions,
+        { category: saved.category, amount: saved.amount }
+      );
+      if (over) {
+        addNotification(
+          {
+            id: `budget-over-${over.pod.id}`,
+            type: "budget_over",
+            title: `"${over.pod.name}" over budget`,
+            message: `This expense pushed spending over the allocated ${formatBudgetCurrency(over.pod.allocated)} by ${formatBudgetCurrency(over.overBy)}.`,
+            createdAt: new Date().toISOString(),
+          },
+          userId
+        );
+        toast({
+          title: "Budget exceeded",
+          description: `"${over.pod.name}" is now over budget by ${formatBudgetCurrency(over.overBy)}.`,
+          variant: "destructive",
+        });
+      } else {
+        const head = getExpenseBudgetHeadroom(fluxPods, transactions, {
+          category: saved.category,
+          amount: saved.amount,
+        });
+        toast({
+          title: "Transaction added",
+          description: head
+            ? `${saved.type === "income" ? "Income" : "Expense"} ${formatCurrency(saved.amount)} saved. About ${formatBudgetCurrency(head.remainingAfter)} left in your ${head.podName} budget.`
+            : `${saved.type === "income" ? "Income" : "Expense"} of ${formatCurrency(saved.amount)} has been added.`,
+        });
+      }
+    } else {
+      toast({
+        title: "Transaction added",
+        description: `${saved.type === "income" ? "Income" : "Expense"} of ${formatCurrency(saved.amount)} has been added.`,
+      });
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -636,6 +859,17 @@ export default function Transactions() {
         variant: "destructive",
       });
       return;
+    }
+    if (editDraft.type === "expense") {
+      const budgetMsg = getExpenseBudgetRequirementMessage(fluxPods, editDraft.category, fluxPodsLoaded);
+      if (budgetMsg) {
+        toast({
+          title: "Budget required",
+          description: budgetMsg,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     const { error } = await supabase
       .from("transactions")
@@ -681,7 +915,7 @@ export default function Transactions() {
     setRecategorizing(true);
     
     try {
-      const aiResponse = await fetch("http://127.0.0.1:5000/api/v1/categorize", {
+      const aiResponse = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: editDraft.description })
@@ -778,7 +1012,7 @@ export default function Transactions() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 pb-28 space-y-6">
+      <div className="min-h-screen p-4 sm:p-6 pb-28 space-y-4 sm:space-y-6">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -790,6 +1024,27 @@ export default function Transactions() {
             <p className="text-muted-foreground text-sm mt-1">Track every flow of money</p>
           </div>
         </motion.header>
+
+        {/* Reconciliation helper – review anomalies before reconciling */}
+        {!isLoading && Object.keys(anomalies).length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-xl p-4 border border-warning/30 bg-warning/5"
+          >
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  You have {Object.keys(anomalies).length} anomal{Object.keys(anomalies).length !== 1 ? "ies" : "y"} to review
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Review these flagged transactions before reconciling with your bank statement.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {isLoading && (
           <div className="glass-card rounded-xl p-4 text-sm text-muted-foreground">
@@ -863,6 +1118,9 @@ export default function Transactions() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Recurring Patterns (Pattern Mining) */}
+        <RecurringTransactionsCard transactions={transactions} />
 
         {/* Bulk Actions */}
         <AnimatePresence>
@@ -975,20 +1233,40 @@ export default function Transactions() {
                             <Badge 
                               variant="outline" 
                               className={cn(
-                                "text-xs px-1.5 py-0",
+                                "text-xs px-1.5 py-0 gap-1 group/badge cursor-default",
                                 anomalies[tx.id].severity === "high" && "border-destructive text-destructive",
                                 anomalies[tx.id].severity === "medium" && "border-warning text-warning",
                                 anomalies[tx.id].severity === "low" && "border-muted-foreground text-muted-foreground"
                               )}
                               title={anomalies[tx.id].reason}
                             >
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              AI Alert
+                              <AlertTriangle className="w-3 h-3" />
+                              Worth a look
+                              <button
+                                type="button"
+                                className="opacity-0 group-hover/badge:opacity-100 ml-0.5 rounded hover:bg-muted/50 p-0.5 -mr-0.5 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const a = anomalies[tx.id];
+                                  if (a) {
+                                    recordFalsePositive(a, tx.category, Math.abs(tx.amount));
+                                    setAnomalies((prev) => {
+                                      const next = { ...prev };
+                                      delete next[tx.id];
+                                      return next;
+                                    });
+                                    toast({ title: "Marked as normal", description: "Similar spending won’t be highlighted next time." });
+                                  }
+                                }}
+                                aria-label="This is normal spending for me"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
                             </Badge>
                           )}
                           <Badge variant="outline" className="text-xs px-1.5 py-0 border-primary/30 text-primary">
                             <Sparkles className="w-3 h-3 mr-1" />
-                            AI
+                            Auto
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -1083,9 +1361,12 @@ export default function Transactions() {
         {/* Quick Entry Modal */}
         <AnimatePresence>
           {showQuickEntry && (
-            <QuickEntry 
-              onClose={() => setShowQuickEntry(false)} 
+            <QuickEntry
+              onClose={() => setShowQuickEntry(false)}
               onAdd={handleAddTransaction}
+              transactions={transactions}
+              fluxPods={fluxPods}
+              fluxPodsLoaded={fluxPodsLoaded}
             />
           )}
         </AnimatePresence>
@@ -1098,7 +1379,6 @@ export default function Transactions() {
               onConfirmSplit={async (parsed) => {
                 setShowReceiptScanner(false);
 
-                // Log each receipt item as a real transaction in Supabase
                 if (!isSupabaseConfigured || !userId) return;
 
                 const now = new Date();
@@ -1109,29 +1389,80 @@ export default function Transactions() {
                   hour12: false,
                 });
 
-                const rows = parsed.items.map((item) => ({
-                  user_id: userId,
-                  description: `${item.description}${parsed.merchant ? ` (${parsed.merchant})` : ""}`,
-                  amount: item.amount,
-                  type: "expense" as const,
-                  category: item.category,
-                  date,
-                  time,
-                }));
+                const textToCategorize = parsed.rawText.trim() || parsed.extractedText.join(" ");
+                let category = "Other/Unknown";
+                try {
+                  const catRes = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: textToCategorize }),
+                  });
+                  if (catRes.ok) {
+                    const data = await catRes.json();
+                    category = data.category ?? "Other/Unknown";
+                  }
+                } catch {
+                  category = "Other/Unknown";
+                }
 
-                const { error } = await supabase.from("transactions").insert(rows);
-                if (error) {
+                const merchant = parsed.structured?.merchant ?? parsed.extractedText[0];
+                const amount = typeof parsed.structured?.amount === "number" && parsed.structured.amount > 0
+                  ? parsed.structured.amount
+                  : parsed.suggestedAmount;
+                const receiptDate = parsed.structured?.date;
+                const description =
+                  merchant
+                    ? String(merchant).slice(0, 80) + (parsed.extractedText.length > 1 ? ` (${parsed.extractedText.length} lines)` : "")
+                    : "Receipt";
+
+                const txDate = receiptDate ? String(receiptDate).replace(/\//g, "-") : date;
+                const singleTransaction = {
+                  user_id: userId,
+                  description,
+                  amount,
+                  type: "expense" as const,
+                  category,
+                  date: txDate,
+                  time,
+                };
+
+                const receiptBudgetMsg = getExpenseBudgetRequirementMessage(fluxPods, category, fluxPodsLoaded);
+                if (receiptBudgetMsg) {
                   toast({
-                    title: "Failed to log receipt",
-                    description: error.message,
+                    title: "Budget required",
+                    description: receiptBudgetMsg,
                     variant: "destructive",
                   });
-                } else {
-                  toast({
-                    title: "Receipt logged",
-                    description: `${rows.length} transaction${rows.length > 1 ? "s" : ""} added from receipt.`,
-                  });
+                  return;
                 }
+
+                const { error: txError } = await supabase.from("transactions").insert(singleTransaction);
+                if (txError) {
+                  toast({
+                    title: "Failed to log receipt",
+                    description: txError.message,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                const { error: receiptError } = await supabase.from("receipts").insert({
+                  user_id: userId,
+                  merchant: (merchant ? String(merchant).slice(0, 100) : parsed.extractedText[0]?.slice(0, 100)) ?? "Receipt",
+                  total_amount: amount,
+                  date: txDate,
+                  category,
+                  items: [{ description: parsed.rawText, amount }],
+                });
+
+                if (receiptError) {
+                  console.warn("Receipt saved to transactions but not to receipt history:", receiptError.message);
+                }
+
+                toast({
+                  title: "Receipt logged",
+                  description: `Transaction added (${amount} UGX). Receipt saved to history.`,
+                });
               }}
             />
           )}
@@ -1198,7 +1529,7 @@ export default function Transactions() {
                   disabled={recategorizing}
                 >
                   <Sparkles className={cn("w-4 h-4 mr-1", recategorizing && "animate-pulse")} />
-                  {recategorizing ? "Categorizing…" : "AI Recategorize"}
+                  {recategorizing ? "Working…" : "Suggest category"}
                 </Button>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setEditingId(null)}>

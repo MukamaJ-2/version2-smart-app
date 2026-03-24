@@ -522,6 +522,86 @@ function WhatIfDialog({
   );
 }
 
+function GoalDetailsDialog({
+  goal,
+  aiPrediction,
+  open,
+  onOpenChange,
+}: {
+  goal: Goal;
+  aiPrediction?: { probability: number; monthsToComplete: number; successLikelihood: string };
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const config = statusConfig[goal.status];
+  const safeTarget = goal.targetAmount > 0 ? goal.targetAmount : 1;
+  const percentage = Math.min(100, (goal.currentAmount / safeTarget) * 100);
+  const days = daysUntil(goal.deadline);
+  const remaining = goal.targetAmount - goal.currentAmount;
+  const monthsToDeadline = Math.max(0, days / 30);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass-card border-border max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Target className={cn("w-5 h-5", config.color)} />
+            {goal.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="glass-card rounded-xl p-4 border border-border space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-mono font-bold text-foreground">
+                {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+              </span>
+            </div>
+            <Progress value={percentage} className="h-2" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{percentage.toFixed(0)}% complete</span>
+              <span>{formatCurrency(remaining)} remaining</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Deadline</p>
+              <p className="font-medium text-foreground">{new Date(goal.deadline).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Days left</p>
+              <p className="font-medium text-foreground">{days}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Monthly contribution</p>
+              <p className="font-mono font-medium text-foreground">{formatCurrency(goal.monthlyContribution)}/mo</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Status</p>
+              <p className={config.color}>{config.label}</p>
+            </div>
+          </div>
+          {monthsToDeadline > 0 && goal.monthlyContribution > 0 && (
+            <p className="text-xs text-muted-foreground">
+              At current rate: {formatCurrency(remaining)} ÷ {formatCurrency(goal.monthlyContribution)}/mo
+              ≈ {Math.ceil(remaining / goal.monthlyContribution)} months to reach target.
+            </p>
+          )}
+          {aiPrediction && (
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-xs font-medium text-primary mb-1">Success likelihood</p>
+              <p className="text-sm text-foreground">{aiPrediction.successLikelihood}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                ~{Math.min(100, Math.max(0, Math.round((aiPrediction.probability ?? 0) * 100)))}% probability • ~{aiPrediction.monthsToComplete.toFixed(0)} months
+              </p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function GoalOrbit({
   goal,
   index,
@@ -537,6 +617,7 @@ function GoalOrbit({
   onApply: (goalId: string, newMonthlyContribution: number, addedSavings: number) => void;
   onUpdateProgress: (goalId: string, newCurrentAmount: number) => void;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const config = statusConfig[goal.status];
   const safeTarget = goal.targetAmount > 0 ? goal.targetAmount : 1;
   const percentage = Math.min(100, (goal.currentAmount / safeTarget) * 100);
@@ -548,6 +629,25 @@ function GoalOrbit({
   const circumference = 2 * Math.PI * radius;
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  // ---- Visual Countdown ----
+  const totalDays = days;
+  const countdownWeeks = Math.floor(totalDays / 7);
+  const countdownDaysRemainder = totalDays % 7;
+  const countdownMonths = Math.floor(totalDays / 30);
+
+  // ---- Auto-Adjust Suggestion ----
+  const monthsLeft = totalDays / 30;
+  const requiredMonthly = monthsLeft > 0 ? remaining / monthsLeft : remaining;
+  const needsBoost = remaining > 0 && goal.monthlyContribution > 0 && requiredMonthly > goal.monthlyContribution * 1.05;
+  const boostPercentRaw = goal.monthlyContribution > 0
+    ? ((requiredMonthly - goal.monthlyContribution) / goal.monthlyContribution) * 100
+    : 0;
+  const boostPercent = Math.min(999, Math.max(-99, Math.round(boostPercentRaw)));
+
+  // Deadline urgency
+  const isUrgent = totalDays <= 30 && remaining > 0;
+  const isWarning = totalDays <= 90 && totalDays > 30 && remaining > 0;
 
   return (
     <motion.div
@@ -612,19 +712,41 @@ function GoalOrbit({
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <config.icon className={cn("w-3.5 h-3.5", config.color)} />
             <span className={cn("text-sm", config.color)}>{config.label}</span>
-            <span className="text-muted-foreground">•</span>
-            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{days} days left</span>
+            <span className="text-muted-foreground">&bull;</span>
             {aiPrediction && (
               <>
-                <span className="text-muted-foreground">•</span>
                 <Badge variant="outline" className="text-xs px-1.5 py-0 border-primary/30 text-primary">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  {Math.round(aiPrediction.probability * 100)}% success
+                  {Math.min(100, Math.max(0, Math.round(aiPrediction.probability * 100)))}% success
                 </Badge>
               </>
             )}
           </div>
+
+          {/* Visual Countdown Timer */}
+          {remaining > 0 && (
+            <div className={cn(
+              "rounded-lg px-3 py-2 mb-3 border",
+              isUrgent ? "bg-destructive/5 border-destructive/20" : isWarning ? "bg-warning/5 border-warning/20" : "bg-muted/20 border-border/50"
+            )}>
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className={cn("w-3.5 h-3.5", isUrgent ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground")} />
+                <span className={cn("text-[10px] uppercase tracking-wider font-bold", isUrgent ? "text-destructive" : isWarning ? "text-warning" : "text-muted-foreground")}>
+                  {isUrgent ? "Deadline approaching!" : "Time remaining"}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                {countdownMonths > 0 && (
+                  <><span className="font-mono text-lg font-bold text-foreground">{countdownMonths}</span><span className="text-xs text-muted-foreground mr-1">mo</span></>
+                )}
+                <span className="font-mono text-lg font-bold text-foreground">{countdownMonths > 0 ? countdownDaysRemainder : countdownWeeks}</span>
+                <span className="text-xs text-muted-foreground mr-1">{countdownMonths > 0 ? "days" : "wk"}</span>
+                {countdownMonths === 0 && (
+                  <><span className="font-mono text-lg font-bold text-foreground">{countdownDaysRemainder}</span><span className="text-xs text-muted-foreground">days</span></>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -642,6 +764,20 @@ function GoalOrbit({
               <span className="font-mono text-foreground">{formatCurrency(goal.monthlyContribution)}/mo</span>
             </div>
           </div>
+
+          {/* Auto-Adjust Suggestion */}
+          {needsBoost && remaining > 0 && (
+            <div className="mt-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] uppercase tracking-wider font-bold text-primary">Auto-Adjust Tip</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Increase to <span className="font-mono font-bold text-foreground">{formatCurrency(Math.ceil(requiredMonthly))}/mo</span>
+                {" "}({boostPercent >= 0 ? "+" : ""}{boostPercent}%) to meet your deadline.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -661,30 +797,39 @@ function GoalOrbit({
           size="sm"
           className="flex-1 text-muted-foreground hover:text-foreground"
           onClick={() => {
-            const boostAmount = goal.monthlyContribution * 1.5;
-            toast({
-              title: "Boost Goal",
-              description: `Increasing monthly contribution to ${formatCurrency(boostAmount)} would help you reach "${goal.name}" faster.`,
-            });
+            if (needsBoost) {
+              onApply(goal.id, Math.ceil(requiredMonthly), Math.ceil(requiredMonthly) - goal.monthlyContribution);
+              toast({
+                title: "Contribution adjusted!",
+                description: `Monthly contribution for "${goal.name}" updated to ${formatCurrency(Math.ceil(requiredMonthly))}.`,
+              });
+            } else {
+              const boostAmount = goal.monthlyContribution * 1.5;
+              toast({
+                title: "Boost Goal",
+                description: `Increasing monthly contribution to ${formatCurrency(boostAmount)} would help you reach "${goal.name}" faster.`,
+              });
+            }
           }}
         >
           <TrendingUp className="w-4 h-4 mr-1" />
-          Boost
+          {needsBoost ? "Auto-Adjust" : "Boost"}
         </Button>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="text-muted-foreground hover:text-primary"
-          onClick={() => {
-            toast({
-              title: "Goal Details",
-              description: `Viewing detailed information for "${goal.name}".`,
-            });
-          }}
+          onClick={() => setDetailsOpen(true)}
         >
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
+      <GoalDetailsDialog
+        goal={goal}
+        aiPrediction={aiPrediction}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </motion.div>
   );
 }
@@ -1051,7 +1196,7 @@ export default function Goals() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 space-y-6">
+      <div className="min-h-screen p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}

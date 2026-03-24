@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { bottomNavShortLabel } from "@/lib/feature-labels";
 import { bottomNavItems, moreSheetNavItems } from "./navConfig";
 
 const BOTTOM_NAV_HEIGHT = 64;
@@ -33,19 +34,19 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center justify-around border-t border-sidebar-border bg-sidebar/95 backdrop-blur-md safe-area-bottom md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="fixed bottom-0 left-0 right-0 z-40 flex h-14 min-h-[56px] items-center justify-around border-t border-sidebar-border bg-sidebar/95 backdrop-blur-md md:hidden"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
       >
         {bottomNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path} className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2">
+            <Link key={item.path} to={item.path} className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] touch-manipulation active:opacity-80">
               <item.icon
                 className={cn("h-6 w-6 shrink-0", isActive ? "text-primary" : "text-muted-foreground")}
                 strokeWidth={isActive ? 2.5 : 2}
               />
               <span className={cn("text-[10px]", isActive ? "font-medium text-primary" : "text-muted-foreground")}>
-                {item.label === "Wallet Hub" ? "Hub" : item.label === "AI Companion" ? "Companion" : item.label}
+                {bottomNavShortLabel(item.label)}
               </span>
             </Link>
           );
@@ -54,7 +55,7 @@ export default function BottomNav() {
           type="button"
           onClick={() => setMoreOpen(true)}
           className={cn(
-            "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2",
+            "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] touch-manipulation active:opacity-80",
             location.pathname !== "/dashboard" && moreSheetNavItems.some((i) => i.path === location.pathname)
               ? "text-primary"
               : "text-muted-foreground"
@@ -66,7 +67,11 @@ export default function BottomNav() {
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl border-t pb-safe">
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl border-t pb-safe max-h-[85vh] overflow-y-auto"
+          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}
+        >
           <SheetHeader>
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>

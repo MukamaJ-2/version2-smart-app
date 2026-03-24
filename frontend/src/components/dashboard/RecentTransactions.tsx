@@ -97,49 +97,52 @@ export default function RecentTransactions() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.4 }}
-      className="glass-card rounded-xl p-4"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="glass-card rounded-2xl p-5 border border-border/60 shadow-lg shadow-primary/5"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display text-sm font-semibold text-foreground">Recent Activity</h3>
-        <Link 
+        <div>
+          <h3 className="font-display text-sm font-bold text-foreground tracking-tight">Recent Activity</h3>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Latest transactions</p>
+        </div>
+        <Link
           to="/transactions"
-          className="text-xs text-primary hover:text-primary-glow transition-colors"
+          className="text-xs font-medium text-primary hover:text-primary-glow transition-colors"
         >
           View All →
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {recentTransactions.length === 0 && (
           <div className="text-xs text-muted-foreground">
             No transactions yet. Add your first entry to see activity here.
           </div>
         )}
         {recentTransactions.map((tx, index) => {
-          const icon =
+          const Icon =
             tx.type === "income"
               ? ArrowDownLeft
               : categoryIconMap[tx.category] || Briefcase;
           return (
           <Link key={tx.id} to="/transactions">
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 + index * 0.1 }}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors group cursor-pointer"
+              transition={{ delay: 0.35 + index * 0.05 }}
+              className="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:border-border/60 hover:bg-muted/20 transition-all group cursor-pointer"
             >
             <div
               className={cn(
-                "p-2 rounded-lg transition-all group-hover:scale-110",
+                "p-2 rounded-lg transition-all group-hover:scale-105",
                 tx.type === "income"
-                  ? "bg-success/10 text-success"
-                  : "bg-muted text-muted-foreground"
+                  ? "bg-success/15 text-success border border-success/20"
+                  : "bg-muted/50 text-muted-foreground border border-border/40"
               )}
             >
-              <icon className="w-4 h-4" />
+              <Icon className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">

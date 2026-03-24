@@ -35,8 +35,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import AddPodModal from "@/components/modals/AddPodModal";
-import ReallocateModal from "@/components/modals/ReallocateModal";
+import AddBudgetPortModal from "@/components/modals/AddBudgetPortModal";
+import ReallocateBudgetPortModal from "@/components/modals/ReallocateBudgetPortModal";
 import { useFinancialData, formatCurrency, BudgetPot } from "@/hooks/useFinancialData";
 import { toast } from "sonner";
 
@@ -78,7 +78,8 @@ function PotCard({ pot, index, onReallocate }: { pot: BudgetPot; index: number; 
   const config = statusConfig[pot.status];
   const StatusIcon = config.icon;
   const catConfig = categoryConfig[pot.category];
-  const percentUsed = pot.allocated > 0 ? (pot.spent / pot.allocated) * 100 : 0;
+  const percentUsedRaw = pot.allocated > 0 ? (pot.spent / pot.allocated) * 100 : 0;
+  const percentUsed = Math.max(0, percentUsedRaw); // Can exceed 100 when over budget
   const remaining = pot.allocated - pot.spent;
 
   return (
@@ -135,20 +136,20 @@ function PotCard({ pot, index, onReallocate }: { pot: BudgetPot; index: number; 
                 <TrendingDown className="w-3 h-3" />
                 <span>~{pot.velocity} days left</span>
               </div>
-              <span className="text-xs font-mono text-muted-foreground">{percentUsed.toFixed(0)}% used</span>
+              <span className="text-xs font-mono text-muted-foreground">{Math.min(999, Math.round(percentUsed))}% used</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
             <Button variant="ghost" size="sm" onClick={() => onReallocate(pot)} className="flex-1">
               <ArrowLeftRight className="w-4 h-4 mr-1" />
-              Reallocate
+              Move money
             </Button>
             {pot.children && pot.children.length > 0 && (
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm">
                   {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {pot.children.length} sub-ports
+                  {pot.children.length} sub-budgets
                 </Button>
               </CollapsibleTrigger>
             )}
@@ -159,7 +160,8 @@ function PotCard({ pot, index, onReallocate }: { pot: BudgetPot; index: number; 
               <div className="mt-4 space-y-3 pl-4 border-l-2 border-primary/20">
                 {pot.children.map((child) => {
                   const childConfig = statusConfig[child.status];
-                  const childPercent = child.allocated > 0 ? (child.spent / child.allocated) * 100 : 0;
+                  const childPercentRaw = child.allocated > 0 ? (child.spent / child.allocated) * 100 : 0;
+                  const childPercent = Math.min(999, Math.max(0, childPercentRaw));
                   return (
                     <div key={child.id} className="glass-card rounded-lg p-3 border border-border/50">
                       <div className="flex items-center justify-between mb-2">
@@ -220,7 +222,8 @@ function BudgetRuleDonut({ breakdown }: { breakdown: ReturnType<ReturnType<typeo
 
         <div className="flex-1 space-y-3">
           {data.map((item) => {
-            const percent = total > 0 ? (item.value / breakdown.income) * 100 : 0;
+            const percentRaw = total > 0 ? (item.value / breakdown.income) * 100 : 0;
+            const percent = Math.min(100, Math.max(0, percentRaw));
             const isOver = percent > item.target + 5;
             return (
               <div key={item.name} className="space-y-1">
@@ -300,7 +303,7 @@ function SmartAlertsPanel({ alerts }: { alerts: ReturnType<ReturnType<typeof use
   );
 }
 
-export default function BudgetPots() {
+export default function BudgetPorts() {
   const { budgetPots, addBudgetPot, reallocatePods, getBudgetRuleBreakdown, getSmartAlerts, getDailySpendingLimit } = useFinancialData();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showReallocateModal, setShowReallocateModal] = useState(false);
@@ -321,7 +324,7 @@ export default function BudgetPots() {
 
   const handleAddPot = (pot: Omit<BudgetPot, "id">) => {
     addBudgetPot(pot);
-    toast.success("Budget Port created!");
+    toast.success("Budget created!");
     setShowAddModal(false);
   };
 
@@ -332,7 +335,7 @@ export default function BudgetPots() {
 
   const handleReallocateSubmit = (fromId: string, toId: string, amount: number) => {
     reallocatePods(fromId, toId, amount);
-    toast.success(`Reallocated ${formatCurrency(amount)}`);
+    toast.success(`Moved ${formatCurrency(amount)}`);
     setShowReallocateModal(false);
     setSelectedPot(null);
   };
@@ -343,12 +346,12 @@ export default function BudgetPots() {
         {/* Header */}
         <motion.header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">Budget Ports</h1>
-            <p className="text-muted-foreground text-sm mt-1">Smart budgeting with the 50/30/20 rule</p>
+            <h1 className="font-display text-2xl font-bold text-foreground">Budgets</h1>
+            <p className="text-muted-foreground text-sm mt-1">Split money into needs, wants, and savings (50/30/20)</p>
           </div>
           <Button className="bg-gradient-primary hover:opacity-90" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            New Port
+            Add budget
           </Button>
         </motion.header>
 
@@ -377,7 +380,7 @@ export default function BudgetPots() {
             </div>
           </div>
           <div className="glass-card rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Port Health</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Budget health</p>
             <div className="flex items-center gap-3">
               <span className="text-success font-mono flex items-center gap-1"><CheckCircle className="w-4 h-4" /> {healthyCount}</span>
               <span className="text-warning font-mono flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> {warningCount}</span>
@@ -414,13 +417,68 @@ export default function BudgetPots() {
           <SmartAlertsPanel alerts={alerts} />
         </div>
 
+        {/* Auto-Rebalancing Suggestions */}
+        {(() => {
+          const surplus = budgetPots.filter(p => p.status === "healthy" && (p.allocated - p.spent) > p.allocated * 0.3);
+          const deficit = budgetPots.filter(p => p.status === "critical" || (p.status === "warning" && p.spent > p.allocated * 0.85));
+          const suggestions: { from: BudgetPot; to: BudgetPot; amount: number }[] = [];
+
+          for (const defPot of deficit) {
+            const need = Math.max(0, defPot.spent - defPot.allocated + defPot.allocated * 0.1);
+            for (const surPot of surplus) {
+              const available = surPot.allocated - surPot.spent - surPot.allocated * 0.2;
+              if (available > 0 && need > 0) {
+                const transfer = Math.min(available, need);
+                if (transfer > 0) {
+                  suggestions.push({ from: surPot, to: defPot, amount: Math.round(transfer) });
+                  break;
+                }
+              }
+            }
+          }
+
+          return suggestions.length > 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-2xl p-5 border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <ArrowLeftRight className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground text-sm">Ideas to balance your budgets</h3>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary ml-auto">{suggestions.length} suggestions</Badge>
+              </div>
+              <div className="space-y-2">
+                {suggestions.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-background/50 border border-border/50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm text-success font-medium truncate">{s.from.name}</span>
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-sm text-destructive font-medium truncate">{s.to.name}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-primary/30 text-primary shrink-0 text-xs"
+                      onClick={() => {
+                        handleReallocate(s.from);
+                        toast.success(`Move ${formatCurrency(s.amount)} from ${s.from.name} → ${s.to.name}`);
+                      }}
+                    >
+                      Move {formatCurrency(s.amount)}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : null;
+        })()}
+
         {/* Rollover Banner */}
         {totalRollover > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-xl p-4 border border-success/30 bg-success/5 flex items-center gap-3">
             <RefreshCw className="w-5 h-5 text-success" />
             <div>
               <p className="text-sm font-medium text-foreground">Rollover Bonus: {formatCurrency(totalRollover)}</p>
-              <p className="text-xs text-muted-foreground">Unspent budget from last month carried forward across your ports</p>
+              <p className="text-xs text-muted-foreground">Leftover from last month, added across your budgets</p>
             </div>
           </motion.div>
         )}
@@ -435,12 +493,12 @@ export default function BudgetPots() {
               onClick={() => setFilterCategory(cat)}
               className={filterCategory === cat ? "bg-gradient-primary" : ""}
             >
-              {cat === "all" ? "All Ports" : `${cat.charAt(0).toUpperCase() + cat.slice(1)} ${cat === "needs" ? "(50%)" : cat === "wants" ? "(30%)" : "(20%)"}`}
+              {cat === "all" ? "All budgets" : `${cat.charAt(0).toUpperCase() + cat.slice(1)} ${cat === "needs" ? "(50%)" : cat === "wants" ? "(30%)" : "(20%)"}`}
             </Button>
           ))}
         </div>
 
-        {/* Ports Grid */}
+        {/* Budget cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredPots.map((pot, index) => (
             <PotCard key={pot.id} pot={pot} index={index} onReallocate={handleReallocate} />
@@ -448,12 +506,12 @@ export default function BudgetPots() {
         </div>
       </div>
 
-      <AddPodModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAddPot} />
-      <ReallocateModal
+      <AddBudgetPortModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAddPot} />
+      <ReallocateBudgetPortModal
         open={showReallocateModal}
         onOpenChange={setShowReallocateModal}
-        sourcePod={selectedPot}
-        allPods={budgetPots}
+        sourcePort={selectedPot}
+        allPorts={budgetPots}
         onReallocate={handleReallocateSubmit}
       />
     </AppLayout>

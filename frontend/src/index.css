@@ -204,11 +204,16 @@
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
     background: var(--gradient-space);
     background-attachment: fixed;
+    overflow-x: hidden;
   }
 
   /* Safe area for notched devices (e.g. iPhone) */
@@ -220,6 +225,11 @@
   }
   .pb-safe {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Touch-friendly: remove 300ms tap delay on mobile */
+  a, button {
+    touch-action: manipulation;
   }
 
   /* Scrollbar styling */

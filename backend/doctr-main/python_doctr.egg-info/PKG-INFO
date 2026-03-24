@@ -1,0 +1,92 @@
+Metadata-Version: 2.4
+Name: python-doctr
+Version: 0.0.0
+Summary: Document Text Recognition (docTR): deep Learning for high-performance OCR on documents.
+Author-email: Mindee <contact@mindee.com>
+Maintainer: François-Guillaume Fernandez, Charles Gaillard, Olivier Dulcy, Felix Dittrich
+Project-URL: documentation, https://mindee.github.io/doctr
+Project-URL: repository, https://github.com/mindee/doctr
+Project-URL: tracker, https://github.com/mindee/doctr/issues
+Project-URL: changelog, https://mindee.github.io/doctr/changelog.html
+Keywords: OCR,deep learning,computer vision,pytorch,text detection,text recognition
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: <4,>=3.10.0
+Description-Content-Type: text/markdown
+Requires-Dist: torch<3.0.0,>=2.0.0
+Requires-Dist: torchvision>=0.15.0
+Requires-Dist: onnx<3.0.0,>=1.12.0
+Requires-Dist: numpy<3.0.0,>=1.16.0
+Requires-Dist: scipy<2.0.0,>=1.4.0
+Requires-Dist: h5py<4.0.0,>=3.1.0
+Requires-Dist: opencv-python<5.0.0,>=4.5.0
+Requires-Dist: pypdfium2<6.0.0,>=4.11.0
+Requires-Dist: pyclipper<2.0.0,>=1.2.0
+Requires-Dist: shapely<3.0.0,>=1.6.0
+Requires-Dist: langdetect<2.0.0,>=1.0.9
+Requires-Dist: rapidfuzz<4.0.0,>=3.0.0
+Requires-Dist: huggingface-hub<2.0.0,>=0.20.0
+Requires-Dist: Pillow>=9.2.0
+Requires-Dist: defusedxml>=0.7.0
+Requires-Dist: anyascii>=0.3.2
+Requires-Dist: validators>=0.18.0
+Requires-Dist: tqdm>=4.30.0
+Provides-Extra: html
+Requires-Dist: weasyprint>=55.0; extra == "html"
+Provides-Extra: viz
+Requires-Dist: matplotlib>=3.1.0; extra == "viz"
+Requires-Dist: mplcursors>=0.3; extra == "viz"
+Provides-Extra: contrib
+Requires-Dist: onnxruntime>=1.11.0; extra == "contrib"
+Provides-Extra: testing
+Requires-Dist: pytest>=5.3.2; extra == "testing"
+Requires-Dist: coverage[toml]>=4.5.4; extra == "testing"
+Requires-Dist: onnxruntime>=1.11.0; extra == "testing"
+Requires-Dist: requests>=2.20.0; extra == "testing"
+Requires-Dist: psutil>=5.9.5; extra == "testing"
+Provides-Extra: quality
+Requires-Dist: ruff>=0.1.5; extra == "quality"
+Requires-Dist: mypy>=0.812; extra == "quality"
+Requires-Dist: pre-commit>=2.17.0; extra == "quality"
+Provides-Extra: docs
+Requires-Dist: sphinx!=3.5.0,>=3.0.0; extra == "docs"
+Requires-Dist: sphinxemoji>=0.1.8; extra == "docs"
+Requires-Dist: sphinx-copybutton>=0.3.1; extra == "docs"
+Requires-Dist: docutils<0.23; extra == "docs"
+Requires-Dist: recommonmark>=0.7.1; extra == "docs"
+Requires-Dist: sphinx-markdown-tables>=0.0.15; extra == "docs"
+Requires-Dist: sphinx-tabs>=3.3.0; extra == "docs"
+Requires-Dist: furo>=2022.3.4; extra == "docs"
+Provides-Extra: dev
+Requires-Dist: torch<3.0.0,>=2.0.0; extra == "dev"
+Requires-Dist: torchvision>=0.15.0; extra == "dev"
+Requires-Dist: onnx<3.0.0,>=1.12.0; extra == "dev"
+Requires-Dist: weasyprint>=55.0; extra == "dev"
+Requires-Dist: matplotlib>=3.1.0; extra == "dev"
+Requires-Dist: mplcursors>=0.3; extra == "dev"
+Requires-Dist: pytest>=5.3.2; extra == "dev"
+Requires-Dist: coverage[toml]>=4.5.4; extra == "dev"
+Requires-Dist: onnxruntime>=1.11.0; extra == "dev"
+Requires-Dist: requests>=2.20.0; extra == "dev"
+Requires-Dist: psutil>=5.9.5; extra == "dev"
+Requires-Dist: ruff>=0.3.0; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Requires-Dist: pre-commit>=3.0.0; extra == "dev"
+Requires-Dist: sphinx!=3.5.0,>=3.0.0; extra == "dev"
+Requires-Dist: sphinxemoji>=0.1.8; extra == "dev"
+Requires-Dist: sphinx-copybutton>=0.3.1; extra == "dev"
+Requires-Dist: docutils<0.23; extra == "dev"
+Requires-Dist: recommonmark>=0.7.1; extra == "dev"
+Requires-Dist: sphinx-markdown-tables>=0.0.15; extra == "dev"
+Requires-Dist: sphinx-tabs>=3.3.0; extra == "dev"
+Requires-Dist: furo>=2022.3.4; extra == "dev"

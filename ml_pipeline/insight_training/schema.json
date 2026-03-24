@@ -1,0 +1,36 @@
+{
+  "description": "Training schema for Financial Pulse insight LLM",
+  "input": {
+    "type": "object",
+    "required": ["monthly_stats", "latest_month", "prev_month", "category_averages"],
+    "properties": {
+      "monthly_stats": {
+        "type": "object",
+        "description": "Per-month aggregates: income, expenses, categories"
+      },
+      "latest_month": { "type": "string", "description": "e.g. Mar 2025" },
+      "prev_month": { "type": "string", "description": "e.g. Feb 2025" },
+      "category_averages": {
+        "type": "object",
+        "description": "Historical average spend per category"
+      }
+    }
+  },
+  "output": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": ["type", "message", "action"],
+      "properties": {
+        "type": { "enum": ["positive", "warning", "info"] },
+        "message": { "type": "string" },
+        "action": { "type": "string" }
+      }
+    }
+  },
+  "example_prompt": "Given the following financial snapshot, generate 1-3 actionable insights. Use UGX for amounts. Be concise.",
+  "formats": {
+    "jsonl_tuning": "Each line: {\"prompt\": \"<input text>\", \"response\": \"<JSON array of insights>\"}",
+    "vertex_ai": "{\"contents\": [{\"role\": \"user\", \"parts\": [{\"text\": \"...\"}]}, {\"role\": \"model\", \"parts\": [{\"text\": \"...\"}]}]}"
+  }
+}

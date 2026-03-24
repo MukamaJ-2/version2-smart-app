@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Zap, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Zap, ArrowRight, ArrowLeft, CheckCircle2, ChevronDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -56,6 +59,8 @@ const CATEGORIES = [
   "Miscellaneous",
 ];
 
+const TOP_SLOT_LABELS = ["1st biggest area", "2nd biggest area", "3rd biggest area"] as const;
+
 const PLANNED_EXPENSES = [
   { value: "none", label: "None" },
   { value: "wedding_event", label: "Wedding or event" },
@@ -85,16 +90,16 @@ const CUT_BACK_OPTIONS = [
 ];
 
 const BUDGET_MIND = [
-  { value: "yes_clear", label: "Yes, I have clear amounts" },
-  { value: "rough", label: "I have rough ranges" },
-  { value: "no_suggest", label: "No, I want the app to suggest" },
+  { value: "yes_clear", label: "Yes — I already know my amounts" },
+  { value: "rough", label: "I have a rough idea" },
+  { value: "no_suggest", label: "Not really — suggest something for me" },
 ];
 
 const ALERT_PREFERENCE = [
-  { value: "strict", label: "Alert me strictly when I go over my set limits" },
-  { value: "big_only", label: "Only warn on big overruns" },
-  { value: "use_profile", label: "Use my answers to decide what's normal for me; rarely warn" },
-  { value: "inform_only", label: "Just inform me, don't warn" },
+  { value: "strict", label: "Tell me as soon as I go over a limit" },
+  { value: "big_only", label: "Only warn when it’s a big overrun" },
+  { value: "use_profile", label: "Use my answers to decide what’s normal for me" },
+  { value: "inform_only", label: "Just show info — don’t warn me" },
 ];
 
 export interface OnboardingAnswers {
@@ -115,13 +120,12 @@ export interface OnboardingAnswers {
   alertPreference?: string;
 }
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 const STEP_TITLES = [
-  "About You",
-  "Spending Priorities",
-  "Goals & Flexibility",
-  "Budget & Preferences",
+  "About you",
+  "How you spend",
+  "Goals, plans & alerts",
 ];
 
 export default function OnboardingSurvey() {
@@ -131,6 +135,7 @@ export default function OnboardingSurvey() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const [currentStep, setCurrentStep] = useState(1);
 
   const [lifeStage, setLifeStage] = useState("");
@@ -139,7 +144,8 @@ export default function OnboardingSurvey() {
   const [incomePattern, setIncomePattern] = useState("");
   const [incomePatternCustom, setIncomePatternCustom] = useState("");
   const [essentialCategories, setEssentialCategories] = useState<string[]>([]);
-  const [topSpendingCategories, setTopSpendingCategories] = useState<string[]>([]);
+  const [essentialPickerOpen, setEssentialPickerOpen] = useState(false);
+  const [topSpendingSlots, setTopSpendingSlots] = useState<[string, string, string]>(["", "", ""]);
   const [plannedExpenses, setPlannedExpenses] = useState("");
   const [plannedExpensesCustom, setPlannedExpensesCustom] = useState("");
   const [savingsGoal, setSavingsGoal] = useState("");
@@ -178,7 +184,8 @@ export default function OnboardingSurvey() {
         setIncomePattern(answers.incomePattern ?? "");
         setIncomePatternCustom(answers.incomePatternCustom ?? "");
         setEssentialCategories(answers.essentialCategories ?? []);
-        setTopSpendingCategories(answers.topSpendingCategories ?? []);
+        const t = answers.topSpendingCategories ?? [];
+        setTopSpendingSlots([t[0] ?? "", t[1] ?? "", t[2] ?? ""]);
         setPlannedExpenses(answers.plannedExpenses ?? "");
         setPlannedExpensesCustom(answers.plannedExpensesCustom ?? "");
         setSavingsGoal(answers.savingsGoal ?? "");
@@ -201,21 +208,25 @@ export default function OnboardingSurvey() {
     );
   };
 
-  const toggleTopSpending = (cat: string) => {
-    setTopSpendingCategories((prev) => {
-      if (prev.includes(cat)) return prev.filter((c) => c !== cat);
-      if (prev.length >= 3) return prev;
-      return [...prev, cat];
+  const topSpendingPicksList = topSpendingSlots.filter(Boolean);
+
+  const setTopSlot = (index: 0 | 1 | 2, value: string) => {
+    setTopSpendingSlots((prev) => {
+      const next: [string, string, string] = [...prev] as [string, string, string];
+      next[index] = value === "__none__" ? "" : value;
+      return next;
     });
   };
 
-  const toggleWillingToCutBack = (cat: string) => {
-    setWillingToCutBack((prev) => {
-      if (prev.includes(cat)) return prev.filter((c) => c !== cat);
-      if (prev.length >= 2) return prev;
-      return [...prev, cat];
-    });
-  };
+  const categoryOptionsForTopSlot = (slotIndex: number) =>
+    CATEGORIES.filter(
+      (cat) =>
+        topSpendingSlots[slotIndex] === cat ||
+        !topSpendingSlots.some((picked, i) => i !== slotIndex && picked === cat)
+    );
+
+  const topThreeComplete =
+    topSpendingSlots[0] && topSpendingSlots[1] && topSpendingSlots[2] && new Set(topSpendingSlots).size === 3;
 
   const addWillingToCutBackWriteIn = () => {
     const trimmed = willingToCutBackWriteIn.trim();
@@ -230,6 +241,14 @@ export default function OnboardingSurvey() {
     setWillingToCutBack((prev) => prev.filter((c) => c !== cat));
   };
 
+  const toggleWillingToCutBack = (cat: string) => {
+    setWillingToCutBack((prev) => {
+      if (prev.includes(cat)) return prev.filter((c) => c !== cat);
+      if (prev.length >= 2) return prev;
+      return [...prev, cat];
+    });
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -238,11 +257,11 @@ export default function OnboardingSurvey() {
         if (incomePattern === "custom" && !incomePatternCustom.trim()) return false;
         return true;
       case 2:
-        return essentialCategories.length > 0;
+        if (essentialCategories.length === 0) return false;
+        if (isEditMode) return topSpendingPicksList.length >= 1;
+        return topThreeComplete;
       case 3:
         return true; // All optional
-      case 4:
-        return true; // All optional except maybe alert preference
       default:
         return false;
     }
@@ -252,7 +271,12 @@ export default function OnboardingSurvey() {
     if (!validateStep(currentStep)) {
       toast({
         title: "Complete required fields",
-        description: "Please fill in all required fields before continuing.",
+        description:
+          currentStep === 2
+            ? isEditMode
+              ? "Choose at least one must-pay category and at least one top spending area."
+              : "Choose at least one must-pay category and exactly 3 areas where you spend the most."
+            : "Please fill in all required fields before continuing.",
         variant: "destructive",
       });
       return;
@@ -270,22 +294,31 @@ export default function OnboardingSurvey() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) return;
-    // Only allow submit when on the last step (prevents Enter key or accidental submit from redirecting early)
-    if (currentStep !== TOTAL_STEPS) {
+  const completeOnboarding = async () => {
+    if (!userId) {
+      toast({
+        title: "Session issue",
+        description: "Please sign in again to save your answers.",
+        variant: "destructive",
+      });
       return;
     }
+    if (currentStep !== TOTAL_STEPS) return;
+    if (submitLockRef.current || submitting) return;
     if (!validateStep(1) || !validateStep(2)) {
       toast({
         title: "Complete required fields",
-        description: "Please complete all required steps before submitting.",
+        description: !validateStep(2)
+          ? isEditMode
+            ? "You need at least one must-pay category and one top spending area."
+            : "You need at least one must-pay category and exactly 3 top spending areas."
+          : "Please complete all required steps before submitting.",
         variant: "destructive",
       });
       return;
     }
 
+    submitLockRef.current = true;
     setSubmitting(true);
     const answers: OnboardingAnswers = {
       lifeStage: lifeStage === "custom" ? undefined : lifeStage,
@@ -294,7 +327,7 @@ export default function OnboardingSurvey() {
       incomePattern: incomePattern === "custom" ? undefined : incomePattern,
       incomePatternCustom: incomePattern === "custom" ? incomePatternCustom : undefined,
       essentialCategories,
-      topSpendingCategories: topSpendingCategories.length ? topSpendingCategories : undefined,
+      topSpendingCategories: topSpendingPicksList.length ? topSpendingPicksList : undefined,
       plannedExpenses: plannedExpenses === "custom" ? undefined : plannedExpenses,
       plannedExpensesCustom: plannedExpenses === "custom" ? plannedExpensesCustom : undefined,
       savingsGoal: savingsGoal === "custom" ? undefined : savingsGoal,
@@ -305,59 +338,58 @@ export default function OnboardingSurvey() {
       alertPreference: alertPreference || undefined,
     };
 
-    const completedAt = new Date().toISOString();
-    const { data: updatedRows, error } = await supabase
-      .from("profiles")
-      .update({
-        onboarding_answers: answers,
-        onboarding_completed_at: completedAt,
-        updated_at: completedAt,
-      })
-      .eq("id", userId)
-      .select("id");
-
-    if (error) {
-      setSubmitting(false);
-      toast({
-        title: "Could not save",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-    // If no row was updated (e.g. profile row missing), insert so completion is persisted
-    if (!updatedRows?.length) {
+    try {
+      const completedAt = new Date().toISOString();
       const { data: { user } } = await supabase.auth.getUser();
-      const { error: insertError } = await supabase.from("profiles").insert({
-        id: userId,
-        name: (user?.user_metadata?.name as string) ?? (user?.user_metadata?.full_name as string) ?? null,
-        email: (user?.email as string) ?? null,
-        onboarding_answers: answers,
-        onboarding_completed_at: completedAt,
-        updated_at: completedAt,
-      });
-      if (insertError) {
-        setSubmitting(false);
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("name, email")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const row = existing as { name?: string | null; email?: string | null } | null;
+      const { error } = await supabase.from("profiles").upsert(
+        {
+          id: userId,
+          name: row?.name ?? (user?.user_metadata?.name as string) ?? (user?.user_metadata?.full_name as string) ?? null,
+          email: row?.email ?? (user?.email as string) ?? null,
+          onboarding_answers: answers,
+          onboarding_completed_at: completedAt,
+          updated_at: completedAt,
+        },
+        { onConflict: "id" }
+      );
+
+      if (error) {
         toast({
           title: "Could not save",
-          description: insertError.message,
+          description: error.message,
           variant: "destructive",
         });
         return;
       }
-    }
 
-    setSubmitting(false);
-    toast({
-      title: "Profile saved",
-      description: isEditMode ? "Your preferences have been updated." : "Your preferences will personalize budgets and alerts.",
-    });
-    if (!isEditMode) {
-      try {
-        sessionStorage.setItem("onboarding_just_completed", "1");
-      } catch {}
+      if (!isEditMode) {
+        try {
+          sessionStorage.setItem("onboarding_just_completed", "1");
+        } catch {}
+      }
+      toast({
+        title: "Profile saved",
+        description: isEditMode
+          ? "Your preferences have been updated."
+          : "Your preferences will personalize budgets and alerts.",
+      });
+      navigate("/dashboard", { replace: true });
+    } finally {
+      submitLockRef.current = false;
+      setSubmitting(false);
     }
-    navigate("/dashboard", { replace: true });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentStep === TOTAL_STEPS) void completeOnboarding();
   };
 
   if (loading) {
@@ -387,7 +419,7 @@ export default function OnboardingSurvey() {
             {isEditMode ? "Adjust your preferences" : "Tell us about you"}
           </h1>
           <p className="text-muted-foreground text-sm mb-6">
-            A few questions so we can personalize your budget and avoid unnecessary “overspend” warnings.
+            A few simple choices so we can set friendly budgets and only nudge you when it really matters.
           </p>
 
           {/* Progress Bar */}
@@ -432,6 +464,7 @@ export default function OnboardingSurvey() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
+          noValidate
           onSubmit={handleSubmit}
           onKeyDown={(e) => {
             if (e.key === "Enter" && currentStep !== TOTAL_STEPS) e.preventDefault();
@@ -443,8 +476,8 @@ export default function OnboardingSurvey() {
             <>
               {/* 1. Life stage */}
               <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">1. Life stage</h2>
-            <p className="text-xs text-muted-foreground mb-3">What best describes you?</p>
+            <h2 className="text-sm font-semibold text-foreground mb-3">1. Where you are in life</h2>
+            <p className="text-xs text-muted-foreground mb-3">What fits you best?</p>
             <Select value={lifeStage} onValueChange={setLifeStage} required>
               <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue placeholder="Select..." />
@@ -472,8 +505,8 @@ export default function OnboardingSurvey() {
 
           {/* 2. Dependants */}
           <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">2. Dependants</h2>
-            <p className="text-xs text-muted-foreground mb-3">How many people depend on your income (including you)?</p>
+            <h2 className="text-sm font-semibold text-foreground mb-3">2. Household size</h2>
+            <p className="text-xs text-muted-foreground mb-3">How many people does this income support? Count yourself.</p>
             <Select value={dependants} onValueChange={setDependants} required>
               <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue placeholder="Select..." />
@@ -490,8 +523,8 @@ export default function OnboardingSurvey() {
 
           {/* 3. Income pattern */}
           <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">3. Income pattern</h2>
-            <p className="text-xs text-muted-foreground mb-3">How would you describe your income?</p>
+            <h2 className="text-sm font-semibold text-foreground mb-3">3. How your income shows up</h2>
+            <p className="text-xs text-muted-foreground mb-3">Steady, changing, or uneven — pick the closest match.</p>
             <Select value={incomePattern} onValueChange={setIncomePattern} required>
               <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue placeholder="Select..." />
@@ -522,56 +555,163 @@ export default function OnboardingSurvey() {
           {/* Step 2: Spending Priorities */}
           {currentStep === 2 && (
             <>
-              {/* 4. Essential categories */}
               <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">4. Essential spending</h2>
-            <p className="text-xs text-muted-foreground mb-3">Which of these are essential for you? (Select all that apply)</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {CATEGORIES.map((cat) => (
-                <label
-                  key={cat}
-                  className="flex items-center gap-2 cursor-pointer rounded-lg p-2 hover:bg-muted/30"
-                >
-                  <Checkbox
-                    checked={essentialCategories.includes(cat)}
-                    onCheckedChange={() => toggleEssential(cat)}
-                  />
-                  <span className="text-sm text-foreground">{cat}</span>
-                </label>
-              ))}
-            </div>
-          </section>
+                <h2 className="text-sm font-semibold text-foreground mb-3">4. Must-pay expenses</h2>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Open the list and tick everything you truly need each month. You can choose as many as apply.
+                </p>
+                <Popover open={essentialPickerOpen} onOpenChange={setEssentialPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between font-normal h-auto min-h-10 py-2 px-3"
+                    >
+                      <span className="truncate text-left">
+                        {essentialCategories.length === 0
+                          ? "Choose categories…"
+                          : `${essentialCategories.length} categor${essentialCategories.length === 1 ? "y" : "ies"} selected`}
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[min(calc(100vw-2rem),22rem)] p-0" align="start">
+                    <ScrollArea className="h-64">
+                      <div className="p-2 space-y-0.5">
+                        {CATEGORIES.map((cat) => (
+                          <label
+                            key={cat}
+                            className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={essentialCategories.includes(cat)}
+                              onCheckedChange={() => toggleEssential(cat)}
+                            />
+                            <span className="text-sm text-foreground">{cat}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Selected: {essentialCategories.length || "none yet"} · need at least 1
+                </p>
+                {essentialCategories.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {essentialCategories.map((cat) => (
+                      <Badge key={cat} variant="secondary" className="font-normal text-xs">
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-          {/* 5. Top spending categories */}
-          <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">5. Where you spend most</h2>
-            <p className="text-xs text-muted-foreground mb-3">Pick up to 3 categories you expect to spend the most on each month.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {CATEGORIES.map((cat) => (
-                <label
-                  key={cat}
-                  className="flex items-center gap-2 cursor-pointer rounded-lg p-2 hover:bg-muted/30"
+              <section className="glass-card rounded-xl p-6 border border-border">
+                <h2 className="text-sm font-semibold text-foreground mb-3">5. Top 3 spending areas</h2>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Choose the <strong>3</strong> categories that use most of your money each month — one per
+                  dropdown (you can change this later).
+                </p>
+                <div className="space-y-3">
+                  {([0, 1, 2] as const).map((slotIndex) => (
+                    <div key={slotIndex}>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">
+                        {TOP_SLOT_LABELS[slotIndex]}
+                      </Label>
+                      <Select
+                        value={topSpendingSlots[slotIndex] || undefined}
+                        onValueChange={(v) => setTopSlot(slotIndex, v)}
+                      >
+                        <SelectTrigger className="bg-muted/30 border-border w-full">
+                          <SelectValue placeholder="Select category…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Clear —</SelectItem>
+                          {categoryOptionsForTopSlot(slotIndex).map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+                <p
+                  className={cn(
+                    "text-xs mt-3",
+                    topThreeComplete ? "text-success" : "text-muted-foreground"
+                  )}
                 >
-                  <Checkbox
-                    checked={topSpendingCategories.includes(cat)}
-                    onCheckedChange={() => toggleTopSpending(cat)}
-                    disabled={!topSpendingCategories.includes(cat) && topSpendingCategories.length >= 3}
-                  />
-                  <span className="text-sm text-foreground">{cat}</span>
-                </label>
-              ))}
-            </div>
-          </section>
+                  {topThreeComplete
+                    ? "All 3 areas chosen — you’re set for this step."
+                    : "Pick 3 different categories (one in each dropdown) to continue."}
+                </p>
+              </section>
+
+              <section className="glass-card rounded-xl p-6 border border-border">
+                <h2 className="text-sm font-semibold text-foreground mb-3">6. Do you already have spending limits in mind?</h2>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Rough numbers are fine — we’ll only use this if you choose to enter amounts next.
+                </p>
+                <Select value={budgetInMind || undefined} onValueChange={setBudgetInMind}>
+                  <SelectTrigger className="bg-muted/30 border-border">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUDGET_MIND.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </section>
+
+              {(budgetInMind === "yes_clear" || budgetInMind === "rough") && topSpendingPicksList.length > 0 && (
+                <section className="glass-card rounded-xl p-6 border border-border">
+                  <h2 className="text-sm font-semibold text-foreground mb-3">7. Rough monthly amounts (optional)</h2>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    In UGX, about how much you plan for each area you picked above.
+                  </p>
+                  <div className="space-y-3">
+                    {topSpendingPicksList.slice(0, 3).map((cat) => (
+                      <div key={cat} className="flex items-center gap-3">
+                        <Label className="text-sm w-40 shrink-0">{cat}</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Amount"
+                          className="bg-muted/30 border-border"
+                          value={expectedAmounts[cat] !== undefined ? String(expectedAmounts[cat]) : ""}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const v = raw === "" ? undefined : Number(raw);
+                            setExpectedAmounts((prev) => {
+                              const next = { ...prev };
+                              if (v != null && !Number.isNaN(v) && v > 0) next[cat] = v;
+                              else delete next[cat];
+                              return next;
+                            });
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
 
           {/* Step 3: Goals & Flexibility */}
           {currentStep === 3 && (
             <>
-              {/* 6. Planned expenses */}
+              {/* 8. Planned expenses */}
               <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">6. Big planned expenses (optional)</h2>
-            <p className="text-xs text-muted-foreground mb-3">Any big expenses in the next 12 months?</p>
+              <h2 className="text-sm font-semibold text-foreground mb-3">8. Big costs coming up (optional)</h2>
+            <p className="text-xs text-muted-foreground mb-3">Anything large you expect in the next year?</p>
             <Select value={plannedExpenses} onValueChange={setPlannedExpenses}>
               <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue placeholder="Select if any..." />
@@ -597,10 +737,10 @@ export default function OnboardingSurvey() {
             )}
           </section>
 
-          {/* 7. Savings goal */}
+          {/* 9. Savings goal */}
           <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">7. Savings goal</h2>
-            <p className="text-xs text-muted-foreground mb-3">What’s your main savings goal right now?</p>
+            <h2 className="text-sm font-semibold text-foreground mb-3">9. Main savings focus</h2>
+            <p className="text-xs text-muted-foreground mb-3">What are you mainly saving for right now?</p>
             <Select value={savingsGoal} onValueChange={setSavingsGoal}>
               <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue placeholder="Select..." />
@@ -626,10 +766,12 @@ export default function OnboardingSurvey() {
             )}
           </section>
 
-          {/* 8. Willing to cut back */}
+          {/* 10. Willing to cut back */}
           <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">8. Where you’d cut back</h2>
-            <p className="text-xs text-muted-foreground mb-3">Pick up to 2 categories you’re most willing to reduce if needed.</p>
+            <h2 className="text-sm font-semibold text-foreground mb-3">10. Where you could spend less</h2>
+            <p className="text-xs text-muted-foreground mb-3">
+              Tick up to 2 areas you’d trim first if money got tight (optional).
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {CUT_BACK_OPTIONS.map((cat) => (
                 <label
@@ -645,7 +787,9 @@ export default function OnboardingSurvey() {
                 </label>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3 mb-2">If none of these fit, write your own (e.g. category name):</p>
+            <p className="text-xs text-muted-foreground mt-3 mb-2">
+              Or type your own (counts toward the same limit of 2):
+            </p>
             <div className="flex gap-2">
               <Input
                 placeholder="Type and press Add"
@@ -685,67 +829,12 @@ export default function OnboardingSurvey() {
               </div>
             )}
           </section>
-            </>
-          )}
-
-          {/* Step 4: Budget & Preferences */}
-          {currentStep === 4 && (
-            <>
-              {/* 9. Budget in mind */}
-              <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">9. Budget expectations</h2>
-            <p className="text-xs text-muted-foreground mb-3">Do you already have a monthly budget in mind for your main categories?</p>
-            <Select value={budgetInMind} onValueChange={setBudgetInMind}>
-              <SelectTrigger className="bg-muted/30 border-border">
-                <SelectValue placeholder="Select..." />
-              </SelectTrigger>
-              <SelectContent>
-                {BUDGET_MIND.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </section>
-
-          {/* 10. Optional amounts */}
-          {(budgetInMind === "yes_clear" || budgetInMind === "rough") && topSpendingCategories.length > 0 && (
-            <section className="glass-card rounded-xl p-6 border border-border">
-              <h2 className="text-sm font-semibold text-foreground mb-3">10. Expected monthly amounts (optional)</h2>
-              <p className="text-xs text-muted-foreground mb-3">Rough monthly amount (e.g. in UGX) for your top categories.</p>
-              <div className="space-y-3">
-                {topSpendingCategories.slice(0, 3).map((cat) => (
-                  <div key={cat} className="flex items-center gap-3">
-                    <Label className="text-sm w-40 shrink-0">{cat}</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder="Amount"
-                      className="bg-muted/30 border-border"
-                      value={expectedAmounts[cat] !== undefined ? String(expectedAmounts[cat]) : ""}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const v = raw === "" ? undefined : Number(raw);
-                        setExpectedAmounts((prev) => {
-                          const next = { ...prev };
-                          if (v != null && !Number.isNaN(v) && v > 0) next[cat] = v;
-                          else delete next[cat];
-                          return next;
-                        });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
 
           {/* 11. Alert preference */}
           <section className="glass-card rounded-xl p-6 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3">11. How to treat “over budget”</h2>
-            <p className="text-xs text-muted-foreground mb-3">How should we treat overspending alerts?</p>
-            <Select value={alertPreference} onValueChange={setAlertPreference}>
+            <h2 className="text-sm font-semibold text-foreground mb-3">11. When you go past a limit</h2>
+            <p className="text-xs text-muted-foreground mb-3">How should we get your attention?</p>
+            <Select value={alertPreference || undefined} onValueChange={setAlertPreference}>
               <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
@@ -785,8 +874,12 @@ export default function OnboardingSurvey() {
               </Button>
             ) : (
               <Button
-                type="submit"
+                type="button"
                 disabled={submitting}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void completeOnboarding();
+                }}
                 className="bg-gradient-primary hover:opacity-90 flex items-center gap-2"
               >
                 {submitting ? "Saving..." : isEditMode ? "Save and go to dashboard" : "Finish and go to dashboard"}

@@ -85,7 +85,7 @@ export default function AICompanionPanel() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-primary shadow-glow-md flex items-center justify-center z-50 hover:shadow-glow-lg transition-shadow"
+            className="fixed bottom-20 right-4 md:bottom-6 md:right-6 w-14 h-14 rounded-full bg-gradient-primary shadow-glow-md flex items-center justify-center z-50 hover:shadow-glow-lg transition-shadow touch-manipulation"
           >
             <MessageSquare className="w-6 h-6 text-primary-foreground" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background animate-pulse" />
@@ -101,7 +101,7 @@ export default function AICompanionPanel() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-screen w-[400px] bg-sidebar border-l border-sidebar-border flex flex-col z-50"
+            className="fixed right-0 top-0 h-screen w-full max-w-[400px] bg-sidebar border-l border-sidebar-border flex flex-col z-50"
           >
             {/* Header */}
             <div className="h-16 px-4 flex items-center justify-between border-b border-sidebar-border">
@@ -110,10 +110,10 @@ export default function AICompanionPanel() {
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-display text-sm font-semibold text-foreground">AI Companion</h3>
+                  <h3 className="font-display text-sm font-semibold text-foreground">Money coach</h3>
                   <p className="text-xs text-success flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                    Online
+                    Ready
                   </p>
                 </div>
               </div>

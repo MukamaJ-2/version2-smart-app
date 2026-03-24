@@ -205,7 +205,7 @@ export function suggestNewPodAllocation(
       category: "Custom",
       suggestedAmount: Math.round(avgPodSize),
       confidence: 0.5,
-      reasoning: `Suggested based on average pod size of ${Math.round(avgPodSize)} UGX`,
+      reasoning: `Suggested from your other budgets (average about ${Math.round(avgPodSize)} UGX)`,
       minAmount: Math.round(avgPodSize * 0.5),
       maxAmount: Math.round(avgPodSize * 2),
     };

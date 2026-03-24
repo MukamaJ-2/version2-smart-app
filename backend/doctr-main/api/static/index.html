@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>docTR OCR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      color: #e8e8e8;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    p.subtitle {
+      color: #8892b0;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+    }
+    .upload-zone {
+      border: 2px dashed #3d5a80;
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      text-align: center;
+      background: rgba(61, 90, 128, 0.1);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #00d9ff;
+      background: rgba(0, 217, 255, 0.08);
+    }
+    .upload-zone input {
+      display: none;
+    }
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.8;
+    }
+    .upload-text {
+      font-size: 1.1rem;
+      color: #a8b2d1;
+    }
+    .upload-hint {
+      font-size: 0.9rem;
+      color: #5a6a8a;
+      margin-top: 0.5rem;
+    }
+    .preview-section {
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    .preview-section.visible {
+      display: block;
+    }
+    .preview-img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 12px;
+      border: 1px solid #3d5a80;
+      margin-top: 0.5rem;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #00d9ff, #00b4d8);
+      color: #0f0f23;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0, 217, 255, 0.4);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: #8892b0;
+      border: 1px solid #3d5a80;
+      margin-left: 0.5rem;
+    }
+    .btn-secondary:hover {
+      border-color: #00d9ff;
+      color: #00d9ff;
+    }
+    .results {
+      margin-top: 2rem;
+      display: none;
+    }
+    .results.visible {
+      display: block;
+    }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .results-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .results-content {
+      background: rgba(30, 40, 60, 0.6);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid #3d5a80;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .word-list {
+      line-height: 1.8;
+      font-size: 1.05rem;
+    }
+    .word {
+      display: inline;
+      margin-right: 0.25rem;
+    }
+    .error {
+      background: rgba(220, 53, 69, 0.2);
+      border: 1px solid #dc3545;
+      color: #ff6b6b;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-top: 1rem;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #00d9ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .links {
+      text-align: center;
+      margin-top: 2rem;
+    }
+    .links a {
+      color: #00d9ff;
+      text-decoration: none;
+      margin: 0 1rem;
+      font-size: 0.9rem;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>docTR OCR</h1>
+      <p class="subtitle">Extract text from images and PDFs</p>
+    </header>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept="image/*,.pdf">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">Click or drag a file here</div>
+      <div class="upload-hint">Supports JPG, PNG, PDF</div>
+    </div>
+
+    <div class="preview-section" id="previewSection">
+      <div class="upload-text">Selected file: <strong id="fileName"></strong></div>
+      <img class="preview-img" id="previewImg" alt="Preview">
+      <div style="margin-top: 1rem;">
+        <button class="btn btn-primary" id="runBtn">Run OCR</button>
+        <button class="btn btn-secondary" id="clearBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="results-header">
+        <span class="results-title">Extracted text</span>
+      </div>
+      <div class="results-content" id="resultsContent"></div>
+    </div>
+
+    <div class="error" id="error" style="display: none;"></div>
+
+    <div class="links">
+      <a href="/docs">API Docs</a>
+      <a href="/redoc">ReDoc</a>
+    </div>
+  </div>
+
+  <script>
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const previewSection = document.getElementById('previewSection');
+    const previewImg = document.getElementById('previewImg');
+    const fileName = document.getElementById('fileName');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const results = document.getElementById('results');
+    const resultsContent = document.getElementById('resultsContent');
+    const errorEl = document.getElementById('error');
+
+    let selectedFile = null;
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      const valid = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!valid.includes(file.type)) {
+        showError('Please select a JPG, PNG, or PDF file.');
+        return;
+      }
+      selectedFile = file;
+      fileName.textContent = file.name;
+      errorEl.style.display = 'none';
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewImg.style.display = 'none';
+      }
+      previewSection.classList.add('visible');
+      results.classList.remove('visible');
+    }
+
+    clearBtn.addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      previewSection.classList.remove('visible');
+      results.classList.remove('visible');
+      errorEl.style.display = 'none';
+    });
+
+    runBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<span class="loading"></span>Processing...';
+      errorEl.style.display = 'none';
+      results.classList.remove('visible');
+
+      const formData = new FormData();
+      formData.append('files', selectedFile);
+
+      try {
+        const res = await fetch('/ocr/?det_arch=db_resnet50&reco_arch=crnn_vgg16_bn', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'OCR failed');
+        displayResults(data);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run OCR';
+      }
+    });
+
+    function displayResults(data) {
+      let html = '';
+      data.forEach(page => {
+        page.items?.forEach(p => {
+          p.blocks?.forEach(block => {
+            block.lines?.forEach(line => {
+              const words = line.words?.map(w => w.value).join(' ') || '';
+              if (words) html += `<span class="word">${escapeHtml(words)}</span> `;
+            });
+          });
+        });
+      });
+      resultsContent.innerHTML = html ? `<div class="word-list">${html}</div>` : '<p style="color:#8892b0">No text detected.</p>';
+      results.classList.add('visible');
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniGuard Digital Wallet - Project Presentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: 594mm 420mm; margin: 0; }
+    :root {
+      --magenta: #c2185b;
+      --magenta-light: #e91e63;
+      --dark: #2d3748;
+      --dark-light: #4a5568;
+      --white: #ffffff;
+      --bg: #fafafa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #e2e8f0; padding: 0.5rem; }
+    .poster {
+      width: 594mm;
+      height: 420mm;
+      margin: 0 auto;
+      background: var(--white);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    @media screen {
+      .poster { transform: scale(0.5); transform-origin: top center; }
+    }
+
+    /* === HEADER === */
+    .header {
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+      min-height: 76px;
+    }
+    .header-left {
+      width: 85mm;
+      background: var(--white);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 2px solid #e2e8f0;
+    }
+    .ucu-logo-img {
+      width: 100%;
+      max-width: 80mm;
+      height: auto;
+      object-fit: contain;
+      display: block;
+    }
+    .ucu-dept { font-size: 12px; color: var(--dark-light); margin-top: 8px; }
+    .header-center {
+      flex: 1;
+      background: var(--magenta);
+      padding: 5px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .header-center h1 { font-size: 40px; font-weight: 700; color: var(--white); letter-spacing: 0.5px; }
+    .header-center .subtitle { font-size: 30px; color: rgba(255,255,255,0.95); margin-top: 4px; font-weight: 600; }
+    .header-center .tagline { font-size: 20px; color: rgba(255,255,255,0.9); font-style: italic; margin-top: 2px; }
+    .header-right {
+      width: 72mm;
+      background: var(--magenta);
+      padding: 6px 7px 6px 0px;
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .header-right .label { font-size: 18px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+    .header-right .author { font-size: 20px; line-height: 1.4; margin-bottom: 2px; overflow-wrap: break-word; }
+
+    /* === MAIN === */
+    .main {
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .col { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+    .section-title {
+      background: var(--magenta);
+      color: var(--white);
+      font-size: 22px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 14px;
+    }
+    .section {
+      background: var(--bg);
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .section.section-screenshots { flex: 0.9; }
+    .section.section-arch { flex: 1.4; }
+    .section p, .section li {
+      font-size: 18px;
+      color: var(--dark);
+      line-height: 1.5;
+      margin-bottom: 6px;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
+    .section ul { padding-left: 18px; }
+    .section li { margin-bottom: 5px; }
+
+    /* Left column */
+    .dashboard-mockup {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e0;
+      padding: 4px;
+      margin-top: 2px;
+    }
+    .mockup-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    /*.mockup-row:last-child { margin-bottom: 0; }
+    .mockup-box {
+      background: rgba(194,24,91,0.15);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      height: 28px;
+      flex: 1;
+    }
+    .mockup-box.wide { flex: 2; }
+    .mockup-box.tall { height: 42px; }
+    /* Methodology hero image */
+    .methodology-hero { margin: 10px 0; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; text-align: center; }
+    .methodology-hero-img { width: 78%; max-width: 160mm; height: auto; display: inline-block; object-fit: contain; }
+    /* Screenshots */
+    .screenshot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .screenshot-box {
+      position: relative;
+      aspect-ratio: 16/9;
+      min-height: 0;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    } */
+    .screenshot-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .screenshot-box .placeholder { font-size: 16px; color: var(--dark-light); text-align: center; padding: 10px; }
+
+    /* Architecture */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .arch-box {
+      background: rgba(194,24,91,0.08);
+      border: 1px solid var(--magenta);
+      border-radius: 4px;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--magenta);
+    }
+    .arch-arrow { text-align: center; font-size: 13px; color: var(--magenta); }
+    .arch-simple {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 12px 0; padding: 12px; background: var(--white);
+      border: 1px solid #e2e8f0; border-radius: 6px;
+    }
+    .arch-block {
+      padding: 14px 24px; border-radius: 6px; text-align: center;
+      border: 2px solid; font-weight: 700; font-size: 20px;
+    }
+    .frontend-block { background: rgba(59,130,246,0.12); border-color: #3b82f6; color: #1d4ed8; }
+    .backend-block { background: rgba(34,197,94,0.12); border-color: #22c55e; color: #15803d; }
+    .models-block { background: rgba(194,24,91,0.12); border-color: var(--magenta); color: #ad1457; }
+    .arch-connector { font-size: 24px; color: var(--dark-light); font-weight: 700; }
+    .arch-features { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+    .arch-features-col {
+      background: var(--white); border: 1px solid #e2e8f0;
+      border-radius: 4px; padding: 10px 12px;
+    }
+    .arch-features-title { font-size: 17px; font-weight: 700; color: var(--magenta); margin-bottom: 8px; }
+    .arch-features-col ul { padding-left: 18px; margin: 0; }
+    .arch-features-col li { font-size: 16px; line-height: 1.45; margin-bottom: 5px; }
+    /* Data & model flow diagram */
+    .flow-diagram { margin-top: 10px; }
+    .flow-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; flex-wrap: wrap; }
+    .flow-node {
+      background: var(--white);
+      border: 1px solid var(--magenta);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-weight: 600;
+      color: var(--magenta);
+      flex-shrink: 0;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
+    .flow-node.data { background: rgba(59,130,246,0.1); border-color: #3b82f6; color: #1d4ed8; }
+    .flow-node.model { background: rgba(34,197,94,0.1); border-color: #22c55e; color: #15803d; }
+    .flow-arrow { color: var(--dark-light); font-size: 14px; }
+
+    /* Charts */
+    .charts-row { display: flex; gap: 8px; margin-top: 4px; }
+    .chart-box {
+      flex: 1;
+      background: var(--white);
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 6px;
+    }
+    .chart-title { font-size: 11px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .bar-chart { display: flex; flex-direction: column; gap: 3px; }
+    .bar-row { display: flex; align-items: center; gap: 4px; }
+    .bar-label { font-size: 10px; width: 45%; color: var(--dark); }
+    .bar-track { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--magenta); border-radius: 4px; }
+    .pie-chart { width: 50px; height: 50px; border-radius: 50%; background: conic-gradient(#c2185b 0% 58%, #f59e0b 58% 78%, #3b82f6 78% 100%); }
+
+    .sdg-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .sdg-badge {
+      background: rgba(194,24,91,0.1);
+      border: 1px solid var(--magenta);
+      padding: 3px 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--magenta);
+    }
+
+    /* Colored info boxes (research poster style) */
+    .info-boxes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; }
+    .info-box {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    .info-box.green { background: rgba(34,197,94,0.15); border: 1px solid #22c55e; color: #15803d; }
+    .info-box.purple { background: rgba(147,51,234,0.15); border: 1px solid #9333ea; color: #6b21a8; }
+    .info-box.orange { background: rgba(249,115,22,0.15); border: 1px solid #f97316; color: #c2410c; }
+    .info-box.magenta { background: rgba(194,24,91,0.15); border: 1px solid var(--magenta); color: #ad1457; }
+    .model-box { padding: 10px 14px; border-radius: 4px; margin: 8px 0; font-size: 16px; line-height: 1.45; }
+    .model-box.green { background: rgba(34,197,94,0.12); border: 1px solid #22c55e; }
+    .model-box.orange { background: rgba(249,115,22,0.12); border: 1px solid #f97316; }
+    .model-box.purple { background: rgba(147,51,234,0.12); border: 1px solid #9333ea; }
+    .results-table { width: 100%; border-collapse: collapse; font-size: 16px; margin: 8px 0; }
+    .results-table th, .results-table td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
+    .results-table th { background: rgba(194,24,91,0.1); font-weight: 700; color: var(--magenta); }
+    .refs-section { flex: 0.35; padding: 8px 10px; min-height: 0; }
+    .refs-text { font-size: 17px; line-height: 1.45; margin-bottom: 0; }
+
+    @media print {
+      body { padding: 0; background: #fff; }
+      .poster { transform: none !important; width: 594mm !important; height: 420mm !important; page-break-after: avoid; page-break-inside: avoid; }
+      .header-center, .header-right, .section-title, .arch-box, .arch-block, .info-box, .model-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="poster">
+    <header class="header" style="flex:0.12;">
+      <div class="header-left">
+        <img src="logo.png" alt="Uganda Christian University" class="ucu-logo-img" />
+        <!--<p class="ucu-dept">Department of Computing & Technology</p>-->
+      </div>
+      <div class="header-center">
+        <h1>UNIGUARD EXPENSE TRACKER</h1>
+        <p class="subtitle">AI-Driven Personal Budgeting and Financial Literacy Enhancement for Youth and the General Public</p>
+      </div>
+      <div class="header-right">
+        <!--<p class="label">Authors:</p>-->
+        <p class="author">Mukama Joseph S23B23/036, 0762916855</p>
+        <p class="author">Odongkara Oscar S23B23/085, 0771301999</p>
+        <p class="author">Namaganda W Precious S23B23/092, 0756989388</p>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- LEFT COLUMN -->
+      <div class="col">
+        <div class="section" style="flex:0.55;padding:8px 12px;">
+          <div class="section-title">Introduction</div>
+          <p style="margin-bottom:6px;">UniGuard expense tracker is an AI-driven personal finance system designed to help youth and the general public budget, track spending, and build lasting savings habits.</p>
+          <p style="margin-bottom:0;">The platform combines smart budgeting with AI models for spending insights and anomaly detection, and gamified financial literacy to make money management engaging and accessible. It caters for users with varying financial goals from daily expenses to long-term savings.</p>
+        </div>
+        <div class="section" style="flex:0.6;padding:8px 10px;">
+          <div class="section-title">Problem Statement</div>
+          <p style="margin-bottom:0;font-size:19px;line-height:1.5;">Youth and the general public in Uganda face financial stress and debt partly because existing tools do not fit their needs. Most apps are either fully manual (tedious data entry), delayed (no real-time insights), or not built for local contexts (irregular income, small amounts). There is no single platform that combines smart budgeting, AI-powered spending insights, and gamified financial learningleaving users without practical tools to build good money habits.</p>
+        </div>
+        <div class="section" style="flex:0.65;padding:8px 12px;">
+          <div class="section-title">Objectives</div>
+          <ul style="margin-bottom:0;font-size:18px;line-height:1.5;">
+            <li>Develop a smart budgeting web app with Budget Ports (category-based budgets), Goals (savings targets), and real-time transaction tracking.</li>
+            <li>Integrate Document Text Recognition-based receipt OCR, Anomaly Detector, Transaction Categorizer, Recurring Detector, Spending Forecaster, Budget Allocator, and Goal Predictor for automated insights.</li>
+            <li>Deliver gamified financial literacy through achievements, leaderboards, and an AI Companion for personalized advice and spending recommendations.</li>
+            <!--<li>Support UGX currency and design for users with irregular income, from youth to the general public.</li>-->  
+          </ul>
+        </div>
+        <div class="section section-arch" style="flex:1.3;"">
+          <div class="section-title">System Architecture</div>
+          <div class="arch-simple">
+            <div class="arch-block frontend-block">Frontend</div>
+            <span class="arch-connector">↔</span>
+            <div class="arch-block backend-block">Backend</div>
+            <span class="arch-connector">↔</span>
+            <div class="arch-block models-block">Models</div>
+          </div>
+          <div class="arch-features">
+            <div class="arch-features-col">
+              <div class="arch-features-title">Frontend Features</div>
+              <ul>
+                <li>Dashboard, Budget Ports, Goals</li>
+                <li>Time Machine simulator</li>
+                <li>Receipt Scanner UI (upload & display)</li>
+                <li>AI Companion chat interface</li>
+                <li>Reports & Analytics views</li>
+                <li>Achievements, Leaderboard</li>
+                <li>Bill splitting, Savings vault</li>
+                <li>Family finance, Investment tracking</li>
+                <li>Transaction entry, Real-time alerts display</li>
+                <li>Gamified financial literacy UI</li>
+              </ul>
+            </div>
+            <div class="arch-features-col">
+              <div class="arch-features-title">Backend Features</div>
+              <ul>
+                <li>Flask REST API</li>
+                <li>DocTR OCR (receipt parsing)</li>
+                <li>Supabase Database (auth, storage)</li>
+                <li>Anomaly Detector (Random Forest/Decision Tree)</li>
+                <li>Transaction Categorizer (Term Frequency-Inverse Document Frequency + Random Forecast)</li>
+                <li>Recurring Detector</li>
+                <li>Spending Forecaster</li>
+                <li>Budget Allocator</li>
+                <li>AI Companion logic</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MIDDLE COLUMN -->
+      <div class="col">
+        <div class="section section-screenshots">
+          <div class="section-title">Methodology – Data Pipeline</div>
+          <p style="font-size:19px;margin-bottom:12px;line-height:1.55;">Users enter data by manually adding transactions or scanning receipts; the frontend sends this to the backend, where DocTR OCR parses receipt images Anomaly Detector, Categorizer, Recurring Detector, Forecaster, Allocator, Goal Predictor process the data, store results in Supabase, and surface insights budget status, alerts, forecasts, and goal progress on the live dashboard.</p>
+          <div class="methodology-hero">
+            <img src="poster-screenshots/methodology-visual.png" alt="UniGuard - Time Machine & Financial Wellness" class="methodology-hero-img" />
+          </div>
+        </div>
+        <div class="section" style="flex:0.8;">
+          <div class="section-title">Data Preprocessing & Feature Engineering</div>
+          <p style="font-size:19px;font-weight:600;margin-bottom:8px;color:var(--magenta);">Anomaly Detector:</p>
+          <p style="font-size:19px;line-height:1.5;margin-bottom:10px;">We used synthetic UGX transactions (96000 records). For each user and category, we computed <strong>amount_ratio</strong> = amount ÷ median amount in that category. This makes the model compare spending to the user’s own habits, not global averages. Anomalies were labeled as the top or bottom 3% by amount_ratio per user-category. We then encoded transaction type, category, and payment mode, and scaled amount_ratio for the model.</p>
+          <p style="font-size:19px;font-weight:600;margin-bottom:8px;color:var(--magenta);">Transaction Categorizer:</p>
+          <p style="font-size:19px;line-height:1.5;margin-bottom:0;">We used 122000 text descriptions with 8 categories. We cleaned the text by converting to lowercase, removing numbers and prices (e.g. "4k", "500"), removing special characters, and dropping common words like "the", "on", "for". The cleaned text was turned into numbers using TF-IDF with single words and word pairs (bigrams) so the model could learn patterns like "spent fuel".</p>
+        </div>
+        <div class="section" style="flex:0.6;">
+          <div class="section-title">Machine Learning Models</div>
+          <p style="font-size:20px;font-weight:600;margin-bottom:8px;color:var(--magenta);">Trained models</p>
+          <div class="model-box green"><strong>Anomaly Detector:</strong> Uses Isolation Forest, Random Forest, and Decision Tree. Takes transaction type, category, and amount_ratio (amount ÷ user’s typical spend in that category). Flags transactions that are unusually high or low for that user. Trained on per-user UGX data so it works for both low and high spenders.</div>
+          <div class="model-box orange"><strong>Transaction Categorizer:</strong> Uses TF-IDF plus Random Forest. Converts the transaction description into word counts and word-pair counts, then predicts one of 8 categories (Food, Shopping, Transport, Utilities, Entertainment, Healthcare, Housing, Other). Handles messy input like "spent 4k on fuel" or "coffee shop".</div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col">
+        <div class="section" style="flex:0.7;padding:8px 12px;">
+          <div class="section-title">Rule-based models used</div>
+          <ul style="font-size:17px;line-height:1.45;margin-bottom:0;">
+            <li><strong>Recurring Detector:</strong> Scans history for repeated amounts, dates, merchants; identifies subscriptions and bills.</li>
+            <li><strong>Spending Forecaster:</strong> Uses past spending by category to estimate future spend, trends, and days until budget depletes.</li>
+            <li><strong>Budget Allocator:</strong> Suggests income split across categories and goals using history and income.</li>
+            <li><strong>Goal Predictor:</strong> Estimates chance of reaching savings goals by deadline using balance and contributions.</li>
+          </ul>
+        </div>
+        <div class="section" style="flex:1.15;">
+          <div class="section-title">Results</div>
+          <p style="font-size:19px;font-weight:600;margin-bottom:10px;">Model Comparison:</p>
+          <table class="results-table">
+            <tr><th>Model</th><th>Type</th><th>Input</th><th>Output</th><th>Metric</th></tr>
+            <tr><td>Anomaly Detector</td><td>RF / DT / IsoForest</td><td>Tx, amount_ratio, category</td><td>Alerts</td><td>RF 72% acc, DT 70%</td></tr>
+            <tr><td>Categorizer</td><td>TF-IDF + RF</td><td>Description, Amount</td><td>Category</td><td>100% acc, P/R 1.0</td></tr>
+            <tr><td>Recurring Detector</td><td>Logic</td><td>History</td><td>Predictions</td><td>—</td></tr>
+            <tr><td>Spending Forecaster</td><td>Logic</td><td>History</td><td>Forecast</td><td>—</td></tr>
+            <tr><td>Budget Allocator</td><td>Logic</td><td>Income, Goals</td><td>Allocation</td><td>—</td></tr>
+            <tr><td>Goal Predictor</td><td>Logic</td><td>Goals, Contributions</td><td>Completion</td><td>—</td></tr>
+          </table>
+          <!-- <p style="font-size:17px;color:var(--dark-light);margin-top:6px;">See System Architecture for Frontend & Backend features.</p> -->
+        </div>
+        
+        <div class="section" style="flex:0.4;padding:6px 10px;">
+          <div class="section-title">Limitations & Future Work</div>
+          <ul style="font-size:17px;margin-bottom:0;line-height:1.4;">
+            <li>Logic-based models; ML training for anomaly in pipeline.</li>
+            <li>Mobile money API integration for automated transaction sync.</li>
+            <li>Beta testing with UCU students and general public; expansion to broader deployment.</li>
+          </ul>
+        </div>
+        <div class="section" style="flex:0.35;padding:6px 10px;">
+          <div class="section-title">Conclusion</div>
+          <p style="margin-bottom:0;font-size:17px;line-height:1.4;">UniGuard Digital Wallet is a fully deployed AI-powered personal finance system that helps youth and the general public manage money confidently. Combining smart budgeting, DocTR receipt scanning, 6 AI models, and gamified learning delivers practical value and lasting financial impact.</p>
+        </div>
+        <div class="section refs-section">
+          <div class="section-title">References</div>
+          <p class="refs-text">https://github.com/mindee/doctr.</p>
+          <p class="refs-text">https://www.kaggle.com/models/mohamedhanfi/anomaly-detection/.</p>
+          <p class="refs-text">https://huggingface.co/datasets/mitulshah/transaction-categorization.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+  <p class="print-hint">Print (Ctrl+P) → Save as PDF. Paper: A2, Orientation: Landscape.</p>
+  <style>
+    .print-hint { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 12px; background: #fff; padding: 8px 14px; border-radius: 8px; border: 2px solid #c2185b; color: #4a5568; z-index: 100; }
+    @media print { .print-hint { display: none !important; } }
+  </style>
+</body>
+</html>

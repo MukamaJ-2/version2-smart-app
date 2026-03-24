@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Zap, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { navItems } from "./navConfig";
+import { navSections } from "./navConfig";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -112,7 +112,7 @@ export default function Sidebar() {
               className="flex flex-col"
             >
               <span className="font-display text-lg font-bold text-foreground">UniGuard Wallet</span>
-              <span className="text-[10px] text-primary font-mono uppercase tracking-wider">Secure Finance</span>
+              <span className="text-[10px] text-primary font-mono uppercase tracking-wider">Personal finance</span>
             </motion.div>
           )}
         </motion.div>
@@ -120,46 +120,51 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto scrollbar-hide">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link key={item.path} to={item.path}>
-              <motion.div
-                className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
-                )}
-                whileHover={{ x: collapsed ? 0 : 4 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {/* Active indicator */}
-                {isActive && (
+        {navSections.map((section, sectionIdx) => (
+          <div key={sectionIdx} className="space-y-1">
+            {section.label && !collapsed && (
+              <div className="px-3 py-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {section.label}
+                </span>
+              </div>
+            )}
+            {section.items.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link key={item.path} to={item.path}>
                   <motion.div
-                    layoutId="activeNav"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-glow-sm"
-                  />
-                )}
-                
-                <item.icon className={cn(
-                  "w-5 h-5 shrink-0",
-                  isActive && "text-glow-sm"
-                )} />
-                
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm font-medium"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
+                    )}
+                    whileHover={{ x: collapsed ? 0 : 4 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    {item.label}
-                  </motion.span>
-                )}
-              </motion.div>
-            </Link>
-          );
-        })}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeNav"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-glow-sm"
+                      />
+                    )}
+                    <item.icon className={cn("w-5 h-5 shrink-0", isActive && "text-glow-sm")} />
+                    {!collapsed && (
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-sm font-medium"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Health Score */}
@@ -170,7 +175,7 @@ export default function Sidebar() {
           className="mx-3 mb-4 p-4 glass-card rounded-xl"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Health Score</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Savings score</span>
             <span className="font-mono text-lg font-bold text-success text-glow-sm">{healthScore}</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -182,7 +187,7 @@ export default function Sidebar() {
             />
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {healthScore >= 75 ? "Excellent financial health" : healthScore >= 50 ? "Stable financial health" : "Needs attention"}
+            {healthScore >= 75 ? "You’re keeping a lot of income" : healthScore >= 50 ? "You’re in a steady range" : "Try to spend less than you earn"}
           </p>
         </motion.div>
       )}

@@ -173,7 +173,7 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
 
     return [
       {
-        label: simulatedMonths > 0 ? `Projected Balance (+${simulatedMonths}M)` : "Today's Balance",
+        label: simulatedMonths > 0 ? `Balance in +${simulatedMonths} mo (guess)` : "Your balance",
         value: new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(displayBalance),
         change: income > 0 ? `+${new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(income)}` : "No income yet",
         isPositive: income > 0 ? displayBalance >= 0 : null,
@@ -182,10 +182,10 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
         link: "/transactions",
       },
       {
-        label: simulatedMonths > 0 ? "Projected Health" : "Monthly Health",
+        label: simulatedMonths > 0 ? "Score ahead (guess)" : "Savings score",
         value: `${displayHealthScore}`,
         suffix: "/100",
-        change: income > 0 ? `${displayHealthScore} pts` : "No data yet",
+        change: income > 0 ? `${displayHealthScore} out of 100` : "No data yet",
         isPositive: income > 0 ? displayHealthScore >= 50 : null,
         icon: Zap,
         color: "success",
@@ -202,7 +202,7 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
         link: "/goals",
       },
       {
-        label: "Next Deadline",
+        label: "Next goal due",
         value: nextDeadline ? `${daysToDeadline}` : "—",
         suffix: nextDeadline ? " days" : "",
         change: nextDeadline ? nextDeadline.name : "No deadlines yet",
@@ -215,50 +215,57 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
   }, [transactions, goals, countdownNow, simulatedMonths]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {stats.map((stat, index) => {
         const colors = colorClasses[stat.color as keyof typeof colorClasses];
         return (
-          <Link
-            key={stat.label}
-            to={stat.link}
-            className="block"
-          >
+          <Link key={stat.label} to={stat.link} className="block">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card rounded-xl p-4 hover:glass-card-glow transition-all duration-300 group cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-2 rounded-lg ${colors.bg} ${colors.glow} group-hover:scale-110 transition-transform`}>
-                  <stat.icon className={`w-4 h-4 ${colors.text}`} />
-                </div>
-                {stat.isPositive !== null && (
-                  <div className={`flex items-center gap-1 text-xs ${stat.isPositive ? "text-success" : "text-destructive"}`}>
-                    {stat.isPositive ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                    <span>{stat.change}</span>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                {stat.label}
-              </p>
-              <div className="flex items-baseline gap-1">
-                <span className={`font-mono text-2xl font-bold ${colors.text} text-glow-sm`}>
-                  {stat.value}
-                </span>
-                {stat.suffix && (
-                  <span className="text-sm text-muted-foreground">{stat.suffix}</span>
-                )}
-              </div>
-              {stat.isPositive === null && (
-                <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+              transition={{ delay: index * 0.08 }}
+              className={cn(
+                "relative overflow-hidden rounded-2xl p-5 border transition-all duration-300",
+                "bg-card/80 backdrop-blur-sm border-border/60",
+                "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-0.5",
+                "group cursor-pointer"
               )}
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 rounded-full -translate-y-1/2 translate-x-1/2 opacity-20 bg-gradient-to-br from-primary/20 to-transparent" />
+              <div className="relative">
+                <div className="flex items-start justify-between mb-3">
+                  <div className={cn(
+                    "p-2.5 rounded-xl border transition-transform duration-300 group-hover:scale-105",
+                    colors.bg,
+                    "border-border/40"
+                  )}>
+                    <stat.icon className={cn("w-5 h-5", colors.text)} />
+                  </div>
+                  {stat.isPositive !== null && (
+                    <div className={cn(
+                      "flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
+                      stat.isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                    )}>
+                      {stat.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      <span>{stat.change}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">
+                  {stat.label}
+                </p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className={cn("font-mono text-2xl font-bold tracking-tight", colors.text)}>
+                    {stat.value}
+                  </span>
+                  {stat.suffix && (
+                    <span className="text-sm text-muted-foreground font-medium">{stat.suffix}</span>
+                  )}
+                </div>
+                {stat.isPositive === null && (
+                  <p className="text-xs text-muted-foreground mt-2 truncate">{stat.change}</p>
+                )}
+              </div>
             </motion.div>
           </Link>
         );

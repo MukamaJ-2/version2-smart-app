@@ -3,15 +3,33 @@
   "private": true,
   "description": "Run dev/build from project root; app lives in frontend/",
   "scripts": {
+    "poster:screenshots": "node scripts/capture-poster-screenshots.mjs",
     "dev": "cd frontend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "bash -c 'source .venv/bin/activate && cd backend && python app.py'",
+    "dev:backend:5001": "bash -c 'source .venv/bin/activate && cd backend && PORT=5001 python app.py'",
+    "dev:notify": "tsx backend/server/notify.ts",
+    "dev:doctr": "bash -c 'source .venv/bin/activate && cd backend/doctr-main && uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir api'",
+    "dev:all": "echo 'Run each service in a separate terminal: dev:frontend | dev:backend | dev:notify | dev:doctr (optional)'",
     "build": "cd frontend && npm run build",
     "start": "serve frontend/dist -s -l ${PORT:-3000}",
     "preview": "cd frontend && npm run preview",
     "lint": "cd frontend && npm run lint",
-    "notify:server": "node backend/server/notify.js",
+    "notify:server": "tsx backend/server/notify.ts",
     "postinstall": "cd frontend && npm install"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.16",
     "serve": "^14.2.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^6.4.15",
+    "playwright": "^1.58.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
   }
 }

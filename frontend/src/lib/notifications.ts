@@ -1,4 +1,4 @@
-export type NotificationType = "anomaly";
+export type NotificationType = "anomaly" | "budget_over";
 
 export interface AppNotification {
   id: string;
@@ -48,18 +48,30 @@ export function getNotifications(userId: string | null): AppNotification[] {
   }
 }
 
+const NOTIFICATIONS_UPDATED_EVENT = "uniguard.notifications.updated";
+
 /**
- * Add a notification for the current user. Pass userId so it's stored under that user.
+ * Add or update a notification for the current user. If id exists, updates that item and moves to front.
  */
 export function addNotification(notification: AppNotification, userId: string | null) {
   if (typeof window === "undefined") return;
   const key = notificationsKey(userId);
   if (!key) return;
   const existing = getNotifications(userId);
-  const deduped = existing.some((item) => item.id === notification.id)
-    ? existing
-    : [notification, ...existing];
-  window.localStorage.setItem(key, JSON.stringify(deduped.slice(0, 100)));
+  const idx = existing.findIndex((item) => item.id === notification.id);
+  const updated =
+    idx >= 0
+      ? [notification, ...existing.slice(0, idx), ...existing.slice(idx + 1)]
+      : [notification, ...existing];
+  window.localStorage.setItem(key, JSON.stringify(updated.slice(0, 100)));
+  window.dispatchEvent(new CustomEvent(NOTIFICATIONS_UPDATED_EVENT, { detail: { userId } }));
+}
+
+/** Subscribe to notification updates (e.g. when added from same tab). */
+export function onNotificationsUpdated(callback: (userId: string | null) => void) {
+  const handler = (e: Event) => callback((e as CustomEvent).detail?.userId ?? null);
+  window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, handler);
+  return () => window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, handler);
 }
 
 export function wasEmailSent(notificationId: string, userId: string | null): boolean {

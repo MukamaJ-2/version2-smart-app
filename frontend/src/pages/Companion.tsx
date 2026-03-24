@@ -5,7 +5,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { buildAiResponse, type CompanionGoal } from "@/lib/ai/companion";
+import { buildAiResponse, generateProactiveNudges, type CompanionGoal, type ProactiveNudge } from "@/lib/ai/companion";
 import { aiService } from "@/lib/ai/ai-service";
 import type { TrainingTransaction } from "@/lib/ai/training-data";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -16,13 +16,14 @@ interface Message {
   content: string;
   timestamp: Date;
   suggestions?: string[];
+  usedLLM?: boolean;
 }
 
 const quickActions = [
-  { icon: TrendingUp, label: "Spending Analysis", query: "Analyze my spending patterns this month" },
-  { icon: Target, label: "Goal Progress", query: "Show me my goal progress and recommendations" },
-  { icon: Zap, label: "Budget Tips", query: "Give me tips to optimize my budget" },
-  { icon: BarChart3, label: "Financial Health", query: "What's my current financial health score?" },
+  { icon: TrendingUp, label: "Where did my money go?", query: "Summarize my spending this month in simple terms" },
+  { icon: Target, label: "How are my goals?", query: "How are my savings goals doing and what should I do next?" },
+  { icon: Zap, label: "Help with my budget", query: "Give me practical tips to stay within my budget" },
+  { icon: BarChart3, label: "How am I doing?", query: "How am I doing with money overall right now?" },
 ];
 
 const COMPANION_STORAGE_KEY = "uniguard.companion.messages";
@@ -52,6 +53,7 @@ export default function Companion() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [goals, setGoals] = useState<CompanionGoal[]>([]);
+  const [nudges, setNudges] = useState<ProactiveNudge[]>([]);
 
   useEffect(() => {
     let isActive = true;
@@ -76,6 +78,8 @@ export default function Companion() {
         .filter((tx) => tx.type === "income")
         .reduce((sum, tx) => sum + tx.amount, 0);
       aiService.initialize(transactions, incomeTotal);
+      if (!isActive) return;
+      setNudges(generateProactiveNudges());
 
       const { data: goalData, error: goalError } = await supabase
         .from("goals")
@@ -167,8 +171,9 @@ export default function Companion() {
       return lastUser?.content;
     })();
 
-    setTimeout(() => {
-      const aiResponse = buildAiResponse(userMessage.content, {
+    // Small delay for typing UX, then call LLM (async)
+    setTimeout(async () => {
+      const aiResponse = await buildAiResponse(userMessage.content, {
         goals: goals.length > 0 ? goals : undefined,
         lastUserMessage,
       });
@@ -179,10 +184,11 @@ export default function Companion() {
         content: aiResponse.content,
         timestamp: new Date(),
         suggestions: aiResponse.suggestions,
+        usedLLM: aiResponse.usedLLM,
       };
       setMessages((prev) => [...prev, aiMessage]);
       setIsTyping(false);
-    }, 1500);
+    }, 600);
   };
 
   const handleQuickAction = (query: string) => {
@@ -192,7 +198,7 @@ export default function Companion() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen p-6 flex flex-col max-w-5xl mx-auto">
+      <div className="min-h-screen p-4 sm:p-6 flex flex-col max-w-5xl mx-auto">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -205,20 +211,20 @@ export default function Companion() {
                 <div className="w-12 h-12 rounded-xl bg-gradient-secondary flex items-center justify-center shadow-glow-secondary">
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                AI Companion
+                Money coach
               </h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Your intelligent financial advisor
+                Ask questions about your money in everyday language
               </p>
             </div>
             <div className="flex items-center gap-2 glass-card px-4 py-2 rounded-xl">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-sm font-mono text-foreground">Online</span>
+              <span className="text-sm font-mono text-foreground">Ready</span>
             </div>
           </div>
         </motion.header>
 
-        {/* Quick Actions */}
+        {/* Starter questions */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -244,6 +250,51 @@ export default function Companion() {
             );
           })}
         </motion.div>
+
+        {/* Proactive Nudges */}
+        {nudges.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-2 mb-6"
+          >
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.1em] flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-primary" />
+              AI-Powered Insights
+            </p>
+            {nudges.map((nudge) => (
+              <motion.div
+                key={nudge.id}
+                whileHover={{ x: 4 }}
+                className={cn(
+                  "glass-card rounded-xl p-3 border cursor-pointer transition-all",
+                  nudge.type === "warning" && "border-warning/30 bg-warning/5 hover:bg-warning/10",
+                  nudge.type === "positive" && "border-success/30 bg-success/5 hover:bg-success/10",
+                  nudge.type === "info" && "border-primary/30 bg-primary/5 hover:bg-primary/10"
+                )}
+                onClick={() => handleQuickAction(nudge.action)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    "p-1.5 rounded-lg shrink-0 mt-0.5",
+                    nudge.type === "warning" && "bg-warning/20",
+                    nudge.type === "positive" && "bg-success/20",
+                    nudge.type === "info" && "bg-primary/20"
+                  )}>
+                    {nudge.type === "warning" && <Zap className="w-3.5 h-3.5 text-warning" />}
+                    {nudge.type === "positive" && <TrendingUp className="w-3.5 h-3.5 text-success" />}
+                    {nudge.type === "info" && <Lightbulb className="w-3.5 h-3.5 text-primary" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground leading-relaxed">{nudge.message}</p>
+                    <p className="text-xs font-bold text-primary mt-1 uppercase tracking-wider">{nudge.action} &rarr;</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Chat Area */}
         <div className="flex-1 glass-card rounded-2xl overflow-hidden flex flex-col">
@@ -281,7 +332,7 @@ export default function Companion() {
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium text-primary">AI Assistant</span>
+                        <span className="text-xs font-medium text-primary">Money coach</span>
                       </div>
                     )}
                     <p className="whitespace-pre-line">{message.content}</p>

@@ -1,0 +1,46 @@
+/**
+ * Differential Privacy for Aggregate Statistics
+ * Adds Laplace noise to protect individual user privacy when displaying
+ * leaderboard or shared aggregates.
+ */
+
+/**
+ * Laplace distribution sample: Lap(0, b)
+ * PDF: (1/2b) * exp(-|x|/b)
+ * For (epsilon, delta)-DP we use scale b = sensitivity / epsilon
+ */
+function sampleLaplace(scale: number): number {
+  const u = Math.random() - 0.5;
+  return scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+}
+
+/**
+ * Add Laplace noise to a value for epsilon-differential privacy.
+ * @param value - raw value
+ * @param sensitivity - max change in value from one user's data change
+ * @param epsilon - privacy parameter (smaller = more private, noisier)
+ */
+export function addLaplaceNoise(value: number, sensitivity: number, epsilon = 0.5): number {
+  const scale = sensitivity / epsilon;
+  return value + sampleLaplace(scale);
+}
+
+/**
+ * Apply DP to leaderboard entry - rounds to reasonable precision
+ */
+export function privatizeLeaderboardEntry(
+  totalIncome: number,
+  totalExpenses: number,
+  savingsRate: number,
+  epsilon = 0.5
+): { totalIncome: number; totalExpenses: number; savingsRate: number } {
+  const incomeSensitivity = Math.max(totalIncome * 0.1, 100000);
+  const expenseSensitivity = Math.max(totalExpenses * 0.1, 100000);
+  const rateSensitivity = 0.1;
+
+  return {
+    totalIncome: Math.round(Math.max(0, addLaplaceNoise(totalIncome, incomeSensitivity, epsilon) / 10000) * 10000),
+    totalExpenses: Math.round(Math.max(0, addLaplaceNoise(totalExpenses, expenseSensitivity, epsilon) / 10000) * 10000),
+    savingsRate: Math.max(0, Math.min(1, addLaplaceNoise(savingsRate, rateSensitivity, epsilon))),
+  };
+}
