@@ -359,6 +359,23 @@ def categorize():
     })
 
 
+@app.route("/", methods=["GET"])
+def root():
+    """Avoid 404 when opening the Railway/public URL in a browser; this service is API-only."""
+    return jsonify({
+        "service": "UniGuard AI backend",
+        "status": "ok",
+        "endpoints": {
+            "health": "/health",
+            "categorize": "POST /api/v1/categorize",
+            "detect_anomaly": "POST /api/v1/detect-anomaly",
+            "detect_anomaly_batch": "POST /api/v1/detect-anomaly-batch",
+            "scan_receipt": "POST /api/v1/scan-receipt",
+        },
+        "note": "The web app is a separate deploy (Vite). Point VITE_AI_API_URL to this base URL.",
+    })
+
+
 @app.route("/health", methods=["GET"])
 def health_check():
     return jsonify({
