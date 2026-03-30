@@ -25,6 +25,16 @@ import { setUserEmail } from "@/lib/notifications";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isValidEmail, normalizeEmail } from "@/lib/auth/email";
 
+/** Where Supabase sends users after email confirmation — must match an entry in Supabase → Auth → Redirect URLs. */
+function emailRedirectAuthUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const fromEnv = import.meta.env.VITE_SITE_ORIGIN;
+  if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
+    return `${fromEnv.trim().replace(/\/$/, "")}/auth`;
+  }
+  return `${window.location.origin}/auth`;
+}
+
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -267,8 +277,7 @@ export default function Auth() {
     }
 
     const normalizedEmail = normalizeEmail(registerEmail);
-    const redirectTo =
-      typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
+    const redirectTo = emailRedirectAuthUrl();
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password: registerPassword,

@@ -4,6 +4,7 @@
 #
 # Auth + API: Railway → Variables on THIS service — add:
 #   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (from Supabase → Project Settings → API)
+#   VITE_SITE_ORIGIN = https://YOUR-FRONTEND.up.railway.app  (same host users open; fixes wrong host in confirmation emails)
 #   VITE_AI_API_URL = your Flask API URL (no trailing slash)
 # Enable "Available at Build Time" for every VITE_* (Vite embeds them at npm run build).
 # Redeploy after saving so the build picks them up.
