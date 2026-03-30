@@ -4,7 +4,7 @@
  * This acts as the interface between the UI and trained models
  */
 
-import { AI_API_URL } from "../api";
+import { aiFetch } from "../api";
 import { categorizeTransaction, type CategorizationResult } from "./models/transaction-categorizer";
 import { forecastSpending, type SpendingForecast } from "./models/spending-forecaster";
 import { suggestBudgetAllocation, suggestNewPodAllocation, type AllocationRecommendation, type BudgetAllocation } from "./models/budget-allocator";
@@ -330,7 +330,7 @@ export class AIService {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`${AI_API_URL}/api/v1/scan-receipt`, {
+      const response = await aiFetch("/api/v1/scan-receipt", {
         method: "POST",
         body: formData,
       });

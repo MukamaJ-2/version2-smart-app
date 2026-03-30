@@ -48,6 +48,7 @@ import { Badge } from "@/components/ui/badge";
 import { addNotification, getUserEmail, markEmailSent, wasEmailSent } from "@/lib/notifications";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { ReceiptScanner } from "@/components/dashboard/ReceiptScanner";
+import { aiFetch } from "@/lib/api";
 import RecurringTransactionsCard from "@/components/dashboard/RecurringTransactionsCard";
 import {
   wouldExceedBudget,
@@ -189,7 +190,7 @@ async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction &
   let category = "Miscellaneous";
   let confidence: number | undefined;
   try {
-    const aiResponse = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
+    const aiResponse = await aiFetch(`/api/v1/categorize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: trimmed }),
@@ -911,7 +912,7 @@ export default function Transactions() {
     setRecategorizing(true);
     
     try {
-      const aiResponse = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
+      const aiResponse = await aiFetch(`/api/v1/categorize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: editDraft.description })
@@ -1388,7 +1389,7 @@ export default function Transactions() {
                 const textToCategorize = parsed.rawText.trim() || parsed.extractedText.join(" ");
                 let category = "Miscellaneous";
                 try {
-                  const catRes = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
+                  const catRes = await aiFetch(`/api/v1/categorize`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ text: textToCategorize }),

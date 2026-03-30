@@ -2,7 +2,7 @@
  * Blends categorization quality + anomaly detection (local rules + optional RF batch API) for LLM context.
  */
 
-import { AI_API_URL } from "../api";
+import { aiFetch } from "../api";
 import { detectAnomaly, getAmountRatio } from "./models/anomaly-detector";
 import type { TrainingTransaction } from "./training-data";
 
@@ -61,7 +61,7 @@ interface BatchRow {
 async function fetchRfBatchFlags(rows: BatchRow[]): Promise<boolean[] | null> {
   if (rows.length === 0) return [];
   try {
-    const res = await fetch(`${AI_API_URL}/api/v1/detect-anomaly-batch`, {
+    const res = await aiFetch("/api/v1/detect-anomaly-batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transactions: rows }),

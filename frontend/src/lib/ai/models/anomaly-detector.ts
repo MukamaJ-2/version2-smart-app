@@ -7,7 +7,7 @@ import type { TrainingTransaction } from "../training-data";
 import { trainedCategoryStats } from "./artifacts/anomaly-detector";
 import { getUserEmail } from "../../notifications";
 
-import { AI_API_URL } from "../../api";
+import { aiFetch } from "../../api";
 
 export interface AnomalyResult {
   isAnomaly: boolean;
@@ -493,7 +493,7 @@ export async function detectAnomalyWithModel(
 
   try {
     const notifyEmail = getUserEmail();
-    const res = await fetch(`${AI_API_URL}/api/v1/detect-anomaly`, {
+    const res = await aiFetch("/api/v1/detect-anomaly", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
