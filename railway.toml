@@ -1,4 +1,4 @@
-# API (Docker) — full notes: railway/api.toml. Duplicated here so Railway can auto-detect config at repo root.
+# API (Docker) — full notes: railway/api.toml. Duplicated here so Railway can auto-detect at repo root. Web app: frontend/railway.toml
 
 [build]
 builder = "DOCKERFILE"

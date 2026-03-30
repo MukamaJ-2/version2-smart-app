@@ -1,0 +1,18 @@
+# Web (Vite) — use with Service "Root directory" = frontend
+# If Railway asks for a config path, use: /frontend/railway.toml
+# If there is NO config path field: set Build + Start commands manually (see comments below).
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npm run start"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+
+# Manual setup (same as this file) if you cannot find "Config file" in the UI:
+#   Source → Root Directory: frontend
+#   Build → Build command: npm ci && npm run build
+#   Deploy → Start command: npm run start
+# Variables → add VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_AI_API_URL (enable for build if offered)

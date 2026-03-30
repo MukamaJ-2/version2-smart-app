@@ -6,7 +6,7 @@
 #   Settings → Config file: leave default, OR set /railway/api.toml
 #   (Root railway.toml mirrors this [build]/[deploy] for auto-discovery.)
 #
-# Public URL is your ML/backend only. The SPA is railway/web.toml + Root: frontend.
+# Public URL is your ML/backend only. The SPA uses frontend/railway.toml + Root: frontend.
 # =============================================================================
 
 [build]
