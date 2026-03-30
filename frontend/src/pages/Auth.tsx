@@ -33,6 +33,35 @@ export default function Auth() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const emailCallbackHandled = useRef(false);
+  const authHashErrorHandled = useRef(false);
+
+  // Supabase puts #error=…&error_code=otp_expired&error_description=… when the email link expired or was already used
+  useEffect(() => {
+    if (typeof window === "undefined" || authHashErrorHandled.current) return;
+    const raw = window.location.hash;
+    if (!raw || !raw.includes("error=")) return;
+
+    authHashErrorHandled.current = true;
+    const qs = raw.startsWith("#") ? raw.slice(1) : raw;
+    const params = new URLSearchParams(qs);
+    const errCode = params.get("error_code");
+    const descRaw = params.get("error_description");
+    const description = descRaw
+      ? decodeURIComponent(descRaw.replace(/\+/g, " "))
+      : (params.get("error") ?? "Something went wrong.");
+
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+
+    const isExpired = errCode === "otp_expired" || description.toLowerCase().includes("expired");
+    toast({
+      title: isExpired ? "Confirmation link expired" : "Email link didn’t work",
+      description: isExpired
+        ? "Open Supabase → Authentication → Users and resend confirmation, or try signing up again with the same email. Use the new link within a few minutes."
+        : description,
+      variant: "destructive",
+    });
+    setIsLogin(true);
+  }, []);
 
   // Set initial tab based on route
   useEffect(() => {
