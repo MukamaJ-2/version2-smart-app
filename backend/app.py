@@ -199,6 +199,57 @@ def detect_anomaly():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/v1/detect-anomaly-batch", methods=["POST"])
+def detect_anomaly_batch():
+    """Score many transactions in one request (same features as /detect-anomaly). Max 100 rows."""
+    load_anomaly_model()
+    pipeline = _get_anomaly_model()
+    if not pipeline:
+        return jsonify({"error": "Anomaly detector not available"}), 500
+
+    data = request.json or {}
+    items = data.get("transactions")
+    if not isinstance(items, list):
+        return jsonify({"error": "transactions must be a list"}), 400
+    if len(items) > 100:
+        return jsonify({"error": "Maximum 100 transactions per batch"}), 400
+    if len(items) == 0:
+        return jsonify({"results": []})
+
+    rows = []
+    for item in items:
+        if not isinstance(item, dict):
+            return jsonify({"error": "Each transaction must be an object"}), 400
+        rows.append(
+            {
+                "transaction_type": item.get("transaction_type", "expense"),
+                "category": item.get("category", "Miscellaneous"),
+                "amount_ratio": float(item.get("amount_ratio", 1.0)),
+                "payment_mode": item.get("payment_mode", "Unknown"),
+            }
+        )
+
+    try:
+        X = pd.DataFrame(rows)
+        preds = pipeline.predict(X)
+        results = []
+        for i, pred in enumerate(preds):
+            is_anomaly = pred == 1
+            results.append(
+                {
+                    "isAnomaly": bool(is_anomaly),
+                    "anomalyScore": 1.0 if is_anomaly else 0.0,
+                    "amountRatio": float(rows[i]["amount_ratio"]),
+                }
+            )
+        return jsonify({"results": results})
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/v1/notify-test", methods=["POST"])
 def notify_test():
     """
@@ -513,5 +564,7 @@ if __name__ == "__main__":
     load_model()
     load_anomaly_model()
     port = int(os.environ.get("PORT", "5000"))
-    app.run(host="127.0.0.1", port=port)
+    # 0.0.0.0 required for PaaS (Railway, Render, etc.); local dev works the same
+    host = os.environ.get("FLASK_HOST", "0.0.0.0")
+    app.run(host=host, port=port)
 
