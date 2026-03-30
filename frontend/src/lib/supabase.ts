@@ -47,7 +47,13 @@ function getStubClient(): SupabaseClient {
 function createSupabaseClient(): SupabaseClient {
   if (!hasEnv) return getStubClient();
   try {
-    return createClient(url, key);
+    return createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
   } catch {
     return getStubClient();
   }

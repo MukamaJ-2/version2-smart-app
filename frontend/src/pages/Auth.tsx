@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
@@ -32,6 +32,8 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const emailCallbackHandled = useRef(false);
+
   // Set initial tab based on route
   useEffect(() => {
     if (location.pathname === "/register") {
@@ -40,6 +42,63 @@ export default function Auth() {
       setIsLogin(true);
     }
   }, [location.pathname]);
+
+  // Email confirmation / magic-link: Supabase redirects with #access_token=… or ?code=…
+  useEffect(() => {
+    if (!isSupabaseConfigured || emailCallbackHandled.current) return;
+
+    const hasImplicitHash =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("access_token") || window.location.hash.includes("type="));
+    const hasPkceCode =
+      typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code");
+
+    if (!hasImplicitHash && !hasPkceCode) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        if (hasPkceCode) {
+          const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+          if (error || cancelled) return;
+        }
+
+        let session = (await supabase.auth.getSession()).data.session;
+        if (!session?.user && hasImplicitHash) {
+          for (let i = 0; i < 8 && !cancelled; i++) {
+            await new Promise((r) => setTimeout(r, 80));
+            session = (await supabase.auth.getSession()).data.session;
+            if (session?.user) break;
+          }
+        }
+        if (cancelled || !session?.user) return;
+
+        emailCallbackHandled.current = true;
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+
+        const uid = session.user.id;
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at")
+          .eq("id", uid)
+          .maybeSingle();
+
+        const completed = !!profileData?.onboarding_completed_at;
+        toast({
+          title: "Email confirmed",
+          description: completed ? "Welcome back." : "You're signed in — let's finish setup.",
+        });
+        navigate(completed ? "/dashboard" : "/onboarding", { replace: true });
+      } catch (e) {
+        console.error("Auth callback:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSupabaseConfigured, navigate]);
   
   // Login form
   const [loginEmail, setLoginEmail] = useState("");
@@ -179,9 +238,16 @@ export default function Auth() {
     }
 
     const normalizedEmail = normalizeEmail(registerEmail);
+    const redirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password: registerPassword,
+      options: redirectTo
+        ? {
+            emailRedirectTo: redirectTo,
+          }
+        : undefined,
     });
     if (error) {
       toast({
