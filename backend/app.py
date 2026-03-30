@@ -64,6 +64,8 @@ def load_model():
         model_paths = [
             project_root / "ml_pipeline" / "transaction_rf_pipeline.pkl",
             project_root / "backend" / "training" / "models" / "transaction_categorizer" / "transaction_rf_pipeline.pkl",
+            # Legacy layout: some repos store the text categorizer next to anomaly pipelines
+            project_root / "backend" / "training" / "models" / "anomaly_detector" / "transaction_rf_pipeline.pkl",
         ]
         for model_path in model_paths:
             if model_path.exists():
@@ -88,6 +90,7 @@ def load_anomaly_model():
         model_paths = [
             project_root / "backend" / "training" / "models" / "anomaly_detector" / "anomaly_rf_pipeline.pkl",
             project_root / "backend" / "training" / "models" / "anomaly_detector" / "anomaly_dt_pipeline.pkl",
+            project_root / "backend" / "training" / "models" / "anomaly_detector" / "anomaly_iforest_pipeline.pkl",
             project_root / "ml_pipeline" / "anomaly_rf_pipeline.pkl",
         ]
         for model_path in model_paths:

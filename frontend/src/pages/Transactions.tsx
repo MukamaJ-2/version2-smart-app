@@ -168,7 +168,7 @@ interface ParsedTransaction {
 
 const APP_CATEGORIES = Object.keys(categoryIcons);
 
-async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction & { confidence?: number }) | null> {
+async function parseNaturalLanguage(input: string): Promise<ParsedTransaction | null> {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
@@ -188,7 +188,6 @@ async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction &
 
   // Predict category from text alone (no amount required)
   let category = "Miscellaneous";
-  let confidence: number | undefined;
   try {
     const aiResponse = await aiFetch(`/api/v1/categorize`, {
       method: "POST",
@@ -200,20 +199,18 @@ async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction &
       const aiResult = await aiResponse.json();
       const raw = aiResult.category as string;
       category = normalizeMlCategoryForApp(raw, APP_CATEGORIES);
-      confidence = aiResult.confidence;
     }
   } catch (error) {
     console.error("Failed to fetch ML categorization:", error);
     const aiResult = aiService.categorizeTransaction(trimmed, amount || 1, undefined, type);
     category = normalizeMlCategoryForApp(aiResult.category, APP_CATEGORIES);
-    confidence = aiResult.confidence;
   }
 
   let description = trimmed;
   if (description.length > 50) {
     description = description.substring(0, 50) + "...";
   }
-  return { description, amount, type, category, confidence };
+  return { description, amount, type, category };
 }
 const QUICK_ENTRY_DEBOUNCE_MS = 350;
 
@@ -237,7 +234,7 @@ function QuickEntry({
   const [manualAmount, setManualAmount] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-  const [parsed, setParsed] = useState<(ParsedTransaction & { confidence?: number }) | null>(null);
+  const [parsed, setParsed] = useState<ParsedTransaction | null>(null);
 
   // Debounce categorization so the trained model doesn't run on every keystroke
   useEffect(() => {
@@ -474,11 +471,6 @@ function QuickEntry({
               </div>
               <div className="flex items-center justify-between mt-2">
                 <p className="text-xs text-muted-foreground">Today • Category: {parsed.category}</p>
-                {parsed.confidence != null && (
-                  <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                    {Math.round(parsed.confidence * 100)}% confidence
-                  </Badge>
-                )}
               </div>
               {parsed.type === "expense" && budgetHeadroom && effectiveAmount > 0 && (
                 <div

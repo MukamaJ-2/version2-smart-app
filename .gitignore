@@ -54,6 +54,10 @@ backend/training/reports/*.json
 *.safetensors
 *.pt
 *.pkl
+# Ship these sklearn pipelines so Docker/Railway loads categorizer + anomaly models
+!backend/training/models/**/*.pkl
+!ml_pipeline/transaction_rf_pipeline.pkl
+!ml_pipeline/anomaly_rf_pipeline.pkl
 ml_pipeline/receipt_parser_model/
 data/*.csv
 !data/.keep
