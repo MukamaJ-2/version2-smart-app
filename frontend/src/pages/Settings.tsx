@@ -742,6 +742,12 @@ export default function Settings() {
             </div>
           </TabsContent>
         </Tabs>
+
+        <p className="text-center text-[10px] text-muted-foreground font-mono py-4 px-4 border-t border-border/60 mt-6">
+          {typeof __GIT_COMMIT__ === "string" && __GIT_COMMIT__.length > 0
+            ? `Build ${__GIT_COMMIT__.slice(0, 7)} — if this doesn’t match GitHub after deploy, Railway didn’t rebuild this service.`
+            : "Local dev (no build commit)"}
+        </p>
       </div>
     </AppLayout>
   );

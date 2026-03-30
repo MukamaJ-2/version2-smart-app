@@ -5,108 +5,230 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>UniGuard Smart Money Tracker — Presentation Document</title>
   <style>
+    :root {
+      --teal: #0f766e;
+      --teal-light: #14b8a6;
+      --slate-900: #0f172a;
+      --slate-600: #475569;
+      --slate-100: #f1f5f9;
+      --border: #e2e8f0;
+      --card-bg: #ffffff;
+      --accent-warm: #fef3c7;
+      --accent-blue: #eff6ff;
+    }
     @page { size: A4; margin: 18mm 16mm; }
     * { box-sizing: border-box; }
     body {
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       font-size: 10.5pt;
-      line-height: 1.45;
+      line-height: 1.5;
       color: #1a1a1a;
       max-width: 210mm;
       margin: 0 auto;
-      padding: 12mm 14mm 20mm;
-      background: #fff;
+      padding: 12mm 14mm 24mm;
+      background: linear-gradient(180deg, #f8fafc 0%, #fff 120px);
     }
     h1 {
-      font-size: 18pt;
+      font-size: 19pt;
       font-weight: 700;
-      border-bottom: 3px solid #0f766e;
-      padding-bottom: 8px;
-      margin: 0 0 6px;
-      color: #0f172a;
+      border-bottom: 4px solid var(--teal);
+      padding-bottom: 10px;
+      margin: 0 0 8px;
+      color: var(--slate-900);
+      letter-spacing: -0.02em;
     }
-    .subtitle { font-size: 11pt; color: #475569; margin: 0 0 20px; }
-    .meta { font-size: 9.5pt; color: #64748b; margin-bottom: 24px; }
+    .subtitle { font-size: 11.5pt; color: var(--slate-600); margin: 0 0 16px; font-weight: 500; }
+    .meta { font-size: 9.5pt; color: #64748b; margin-bottom: 20px; line-height: 1.55; }
     h2 {
-      font-size: 13pt;
-      color: #0f766e;
-      margin: 22px 0 10px;
+      font-size: 13.5pt;
+      color: var(--teal);
+      margin: 24px 0 12px;
       page-break-after: avoid;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
     }
-    h3 { font-size: 11pt; margin: 14px 0 6px; color: #334155; page-break-after: avoid; }
-    p { margin: 0 0 8px; text-align: justify; }
-    ul, ol { margin: 6px 0 12px 18px; padding: 0; }
-    li { margin-bottom: 5px; }
+    h3 { font-size: 11pt; margin: 16px 0 8px; color: #334155; page-break-after: avoid; font-weight: 600; }
+    p { margin: 0 0 10px; text-align: justify; }
+    ul, ol { margin: 8px 0 14px 20px; padding: 0; }
+    li { margin-bottom: 6px; }
     .slide {
       page-break-after: always;
-      padding-bottom: 8px;
+      padding-bottom: 10px;
     }
     .slide:last-of-type { page-break-after: auto; }
-    .label { font-weight: 600; color: #0f172a; }
+    .label { font-weight: 600; color: var(--slate-900); }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 9.5pt;
-      margin: 10px 0 14px;
+      margin: 12px 0 16px;
     }
     th, td {
       border: 1px solid #cbd5e1;
-      padding: 6px 8px;
+      padding: 7px 9px;
       text-align: left;
       vertical-align: top;
     }
-    th { background: #f1f5f9; font-weight: 600; }
+    th { background: var(--slate-100); font-weight: 600; color: var(--slate-900); }
+    tr:nth-child(even) td { background: #fafafa; }
     .note {
-      background: #f0fdfa;
-      border-left: 4px solid #0d9488;
-      padding: 10px 12px;
-      margin: 12px 0;
+      background: linear-gradient(90deg, #f0fdfa 0%, #fff 100%);
+      border-left: 4px solid var(--teal-light);
+      padding: 12px 14px;
+      margin: 14px 0;
       font-size: 9.5pt;
+      border-radius: 0 6px 6px 0;
     }
     pre, .mono {
       font-family: ui-monospace, "Cascadia Code", monospace;
       font-size: 8.5pt;
       background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
       overflow-x: auto;
       white-space: pre-wrap;
-      margin: 10px 0;
+      margin: 12px 0;
     }
-    .toc { columns: 2; column-gap: 24px; font-size: 9.5pt; }
-    .toc li { break-inside: avoid; }
+    .toc { columns: 2; column-gap: 28px; font-size: 9.5pt; }
+    .toc li { break-inside: avoid; margin-bottom: 4px; }
+    /* Feature overview (screen + print) */
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 16px 0 20px;
+      page-break-inside: avoid;
+    }
+    @media (max-width: 900px) {
+      .pillars { grid-template-columns: repeat(2, 1fr); }
+    }
+    .pillar {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    .pillar strong { display: block; color: var(--teal); font-size: 10pt; margin-bottom: 4px; }
+    .pillar span { font-size: 8.5pt; color: var(--slate-600); line-height: 1.35; }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+    @media (max-width: 800px) {
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+    .fcard {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      min-height: 88px;
+      border-top: 3px solid var(--teal);
+    }
+    .fcard h4 {
+      margin: 0 0 6px;
+      font-size: 10pt;
+      color: var(--slate-900);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .fcard .path { font-family: ui-monospace, monospace; font-size: 7.5pt; color: #64748b; font-weight: normal; }
+    .fcard p { margin: 0; font-size: 8.8pt; color: #475569; text-align: left; line-height: 1.4; }
+    .badge {
+      display: inline-block;
+      font-size: 7pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--accent-blue);
+      color: #1e40af;
+    }
+    .badge.ml { background: var(--accent-warm); color: #92400e; }
+    .badge.data { background: #ecfdf5; color: #047857; }
+    .section-lead {
+      font-size: 10pt;
+      color: var(--slate-600);
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      background: var(--slate-100);
+      border-radius: 8px;
+      border-left: 4px solid var(--teal);
+    }
     .diagram {
       page-break-inside: avoid;
       margin: 14px auto;
       max-width: 100%;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px;
-      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
     }
     .diagram svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
     .diagram-caption {
       font-size: 9pt;
-      color: #475569;
+      color: var(--slate-600);
       text-align: center;
-      margin: 8px 0 0;
+      margin: 10px 0 0;
       font-style: italic;
     }
     .diagram .box { fill: #fff; stroke: #0f766e; stroke-width: 1.5; }
     .diagram .box-alt { fill: #f0fdfa; stroke: #0d9488; stroke-width: 1.5; }
     .diagram .box-db { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.5; }
     .diagram .box-ml { fill: #fef3c7; stroke: #d97706; stroke-width: 1.5; }
+    .diagram .box-flow { fill: #fdf4ff; stroke: #a21caf; stroke-width: 1.5; }
     .diagram text { font-family: "Segoe UI", system-ui, sans-serif; fill: #0f172a; }
     .diagram .t-sm { font-size: 10px; }
     .diagram .t-xs { font-size: 8.5px; fill: #475569; }
     .diagram line, .diagram polyline { stroke: #64748b; stroke-width: 1.2; fill: none; }
     .diagram polygon { fill: #64748b; }
+    .flow-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      margin: 12px 0 0;
+      font-size: 8.5pt;
+      color: #475569;
+      justify-content: center;
+    }
+    .flow-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .flow-legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1px solid #94a3b8;
+      display: inline-block;
+    }
+    .flow-legend i.db { background: #eff6ff; border-color: #2563eb; }
+    .flow-legend i.app { background: #f0fdfa; border-color: #0d9488; }
+    .flow-legend i.ml { background: #fef3c7; border-color: #d97706; }
     footer.doc-footer {
-      margin-top: 28px;
-      padding-top: 10px;
-      border-top: 1px solid #e2e8f0;
+      margin-top: 32px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
       font-size: 8.5pt;
       color: #64748b;
+    }
+    h2.h2-flush {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-top: 0;
+    }
+    .route-table { font-size: 9pt; }
+    .route-table td:first-child { font-family: ui-monospace, monospace; white-space: nowrap; color: #0f766e; font-weight: 600; }
+    @media print {
+      body { background: #fff; }
+      .pillar, .fcard { box-shadow: none; }
     }
   </style>
 </head>
@@ -122,6 +244,17 @@
   </p>
 </header>
 
+<section id="at-a-glance" aria-label="System pillars and feature map">
+  <h2 class="h2-flush">System at a glance</h2>
+  <p class="section-lead">Four pillars: <strong>secure data</strong> (Supabase + RLS), <strong>smart ML</strong> (Flask + joblib), <strong>rich UX</strong> (dashboard, budgets, goals, reports, gamification), and <strong>optional automation</strong> (receipt OCR, email alerts). Every feature below maps to a real route in the React app.</p>
+  <div class="pillars">
+    <div class="pillar"><strong>Data &amp; auth</strong><span>Supabase Auth, profiles, transactions, goals, pods — user-scoped</span></div>
+    <div class="pillar"><strong>ML &amp; OCR</strong><span>Categorize, anomaly (single + batch), receipt scan — DocTR / Tesseract</span></div>
+    <div class="pillar"><strong>Insights</strong><span>AIService, Smart Money pipeline, Reports — charts + narrative highlights</span></div>
+    <div class="pillar"><strong>Export</strong><span>Reports: CSV &amp; PDF in-browser; optional tax-style exports where wired</span></div>
+  </div>
+</section>
+
 <section class="slide" id="toc">
   <h2>Contents</h2>
   <ol class="toc">
@@ -133,6 +266,8 @@
     <li>Literature review</li>
     <li>Research methodology (adopted and rationale)</li>
     <li>System design and architecture (flowchart)</li>
+    <li><strong>Complete feature map</strong> (all app modules)</li>
+    <li><strong>Data journey: entry → insights → PDF/CSV</strong></li>
     <li>Database design (ER-style)</li>
     <li>Demonstration plan</li>
     <li>References and appendix (technical summary)</li>
@@ -261,10 +396,10 @@
       <text x="120" y="188" text-anchor="middle" class="t-sm">PostgreSQL + RLS</text>
       <text x="120" y="202" text-anchor="middle" class="t-xs">profiles, transactions, goals, …</text>
       <rect class="box" x="280" y="138" width="160" height="72" rx="4"/>
-      <text x="360" y="158" text-anchor="middle" font-size="10.5" font-weight="600">Flask backend</text>
-      <text x="360" y="174" text-anchor="middle" class="t-sm">VITE_AI_API_URL</text>
-      <text x="360" y="188" text-anchor="middle" class="t-sm">/categorize · /detect-anomaly</text>
-      <text x="360" y="202" text-anchor="middle" class="t-sm">/scan-receipt</text>
+      <text x="360" y="156" text-anchor="middle" font-size="10.5" font-weight="600">Flask backend</text>
+      <text x="360" y="172" text-anchor="middle" class="t-sm">VITE_AI_API_URL</text>
+      <text x="360" y="186" text-anchor="middle" class="t-xs">/categorize · /anomaly · /batch</text>
+      <text x="360" y="198" text-anchor="middle" class="t-xs">/scan-receipt (OCR chain)</text>
       <rect class="box" x="520" y="138" width="160" height="72" rx="4"/>
       <text x="600" y="158" text-anchor="middle" font-size="10.5" font-weight="600">Notify service</text>
       <text x="600" y="176" text-anchor="middle" class="t-sm">Node + Nodemailer</text>
@@ -297,7 +432,7 @@
   <h3>Text-only reference (same architecture)</h3>
   <div class="mono">FRONTEND (React, Vite, TS) — Shadcn, Tailwind, Three.js, Recharts, TanStack Query, Supabase client
         │
-        ├── REST: VITE_AI_API_URL → Flask (/categorize, /detect-anomaly, /scan-receipt)
+        ├── REST: VITE_AI_API_URL → Flask (/categorize, /detect-anomaly, /detect-anomaly-batch, /scan-receipt)
         │              ├── joblib ML pipelines
         │              └── DocTR API (DOCTR_API_URL) → Tesseract fallback
         ├── Supabase: Auth + PostgreSQL + RLS
@@ -310,11 +445,148 @@
     <tbody>
       <tr><td>POST /api/v1/categorize</td><td>Text in → category, confidence, alternatives</td></tr>
       <tr><td>POST /api/v1/detect-anomaly</td><td>Features in → isAnomaly, anomalyScore, amountRatio</td></tr>
+      <tr><td>POST /api/v1/detect-anomaly-batch</td><td>Many transactions → parallel RF flags (used by Reports / insight signals when API is up)</td></tr>
       <tr><td>POST /api/v1/scan-receipt</td><td>Multipart image → OCR text, structured fields, suggested amount</td></tr>
       <tr><td>GET /health</td><td>Service and model load status</td></tr>
     </tbody>
   </table>
   <p><strong>Design assets:</strong> If architecture diagrams, high-fidelity mockups, or ERDs do not fit the slide, open them in a separate PDF or browser tab during Q&amp;A, per presentation guidelines.</p>
+</section>
+
+<section class="slide" id="slide-feature-map">
+  <h2>Complete feature map — every module in the app</h2>
+  <p>The sidebar navigation reflects the shipped product. Use this grid to show reviewers that scope is <strong>visible and traceable</strong> (each box = one primary screen).</p>
+  <div class="feature-grid">
+    <div class="fcard">
+      <h4>Auth &amp; onboarding <span class="path">/auth · /onboarding</span> <span class="badge data">Entry</span></h4>
+      <p>Sign-in, email confirmation, one-time survey → preferences saved to <code>profiles</code>.</p>
+    </div>
+    <div class="fcard">
+      <h4>Home (Financial Nexus) <span class="path">/dashboard</span> <span class="badge ml">3D + AI</span></h4>
+      <p>Three.js scene, quick stats, wellness score, predictions feed, anomaly summary, time machine, alerts.</p>
+    </div>
+    <div class="fcard">
+      <h4>Transactions <span class="path">/transactions</span> <span class="badge ml">ML</span></h4>
+      <p>Add/edit/delete rows; AI categorization; search; receipt upload path to Flask OCR.</p>
+    </div>
+    <div class="fcard">
+      <h4>Budgets (Flux Pods) <span class="path">/budget-ports</span> <span class="badge ml">Forecasts</span></h4>
+      <p>Allocated vs spent, velocity, AI budget suggestions and pod health.</p>
+    </div>
+    <div class="fcard">
+      <h4>Goals <span class="path">/goals</span> <span class="badge ml">Predict</span></h4>
+      <p>Targets, contributions, deadlines, goal achievement projections.</p>
+    </div>
+    <div class="fcard">
+      <h4>Money coach <span class="path">/companion</span> <span class="badge ml">Hybrid</span></h4>
+      <p>Chat-style companion; context from transactions and goals; optional Gemini when configured.</p>
+    </div>
+    <div class="fcard">
+      <h4>Reports <span class="path">/reports</span> <span class="badge data">Export</span></h4>
+      <p>Charts (monthly, category, weekly, merchants), AI highlights, <strong>CSV + PDF</strong> export in the browser.</p>
+    </div>
+    <div class="fcard">
+      <h4>Savings Vault <span class="path">/savings-vault</span></h4>
+      <p>Locked savings pots, unlock rules, interest-style fields as implemented.</p>
+    </div>
+    <div class="fcard">
+      <h4>Family finance <span class="path">/family-finance</span></h4>
+      <p>Household / shared-money views (module-specific UI).</p>
+    </div>
+    <div class="fcard">
+      <h4>Investments <span class="path">/investments</span></h4>
+      <p>Investment tracking screen (positions or manual entries per implementation).</p>
+    </div>
+    <div class="fcard">
+      <h4>Achievements <span class="path">/achievements</span></h4>
+      <p>Badges and milestones tied to behavior and data.</p>
+    </div>
+    <div class="fcard">
+      <h4>Weekly challenges <span class="path">/weekly-challenges</span></h4>
+      <p>Time-bound goals and engagement loops.</p>
+    </div>
+    <div class="fcard">
+      <h4>Leaderboard <span class="path">/leaderboard</span> <span class="badge data">Anonymous</span></h4>
+      <p>Aggregated savings-rate view (privacy-preserving) where migrations provide the view.</p>
+    </div>
+    <div class="fcard">
+      <h4>Settings <span class="path">/settings</span></h4>
+      <p>Profile, preferences, exports, environment-dependent options.</p>
+    </div>
+  </div>
+  <div class="note"><strong>Presenter tip:</strong> In a live demo, tick through the sidebar top-to-bottom once so every route is “seen”; then deep-dive on Transactions → Budgets → Reports → Companion.</div>
+</section>
+
+<section class="slide" id="slide-data-journey">
+  <h2>Data journey — from user action to insights to PDF</h2>
+  <p>This path is what powers the “intelligent tracker” story: the same <code>transactions</code> rows feed charts, <code>AIService</code> narrative insights, and export files.</p>
+  <p class="diagram-caption">Figure 1b — User data flow: capture → store → analyze → present → export</p>
+  <div class="diagram" role="img" aria-label="Data flow from user to PDF">
+    <svg viewBox="0 0 720 340" width="720" height="340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="#64748b"/>
+        </marker>
+      </defs>
+      <!-- Row 1: User -->
+      <rect class="box" x="280" y="10" width="160" height="36" rx="6"/>
+      <text x="360" y="32" text-anchor="middle" font-size="11" font-weight="600">User (browser)</text>
+      <line x1="360" y1="46" x2="360" y2="58" marker-end="url(#arr)"/>
+      <!-- Row 2: Actions -->
+      <rect class="box-alt" x="80" y="58" width="200" height="44" rx="6"/>
+      <text x="180" y="78" text-anchor="middle" font-size="10" font-weight="600">Manual &amp; receipt entry</text>
+      <text x="180" y="94" text-anchor="middle" class="t-xs">Transactions UI → optional /scan-receipt</text>
+      <rect class="box-db" x="480" y="58" width="200" height="44" rx="6"/>
+      <text x="580" y="78" text-anchor="middle" font-size="10" font-weight="600">Supabase PostgreSQL</text>
+      <text x="580" y="94" text-anchor="middle" class="t-xs">transactions · goals · profiles · pods</text>
+      <line x1="280" y1="80" x2="270" y2="80"/>
+      <line x1="360" y1="46" x2="360" y2="70"/>
+      <line x1="360" y1="70" x2="180" y2="70"/>
+      <line x1="360" y1="70" x2="580" y2="70"/>
+      <line x1="180" y1="102" x2="180" y2="118"/>
+      <line x1="580" y1="102" x2="580" y2="118"/>
+      <polygon points="180,124 176,118 184,118" fill="#64748b"/>
+      <polygon points="580,124 576,118 584,118" fill="#64748b"/>
+      <!-- Row 3: Read path -->
+      <rect class="box-flow" x="240" y="124" width="240" height="40" rx="6"/>
+      <text x="360" y="144" text-anchor="middle" font-size="10" font-weight="600">React: load rows by user_id</text>
+      <text x="360" y="158" text-anchor="middle" class="t-xs">Reports, Dashboard, Companion, Budgets…</text>
+      <line x1="360" y1="164" x2="360" y2="178" marker-end="url(#arr)"/>
+      <!-- Row 4: Processing -->
+      <rect class="box-alt" x="40" y="178" width="200" height="52" rx="6"/>
+      <text x="140" y="198" text-anchor="middle" font-size="10" font-weight="600">Aggregations</text>
+      <text x="140" y="214" text-anchor="middle" class="t-xs">Charts: monthly, category, weekly</text>
+      <rect class="box-ml" x="260" y="178" width="200" height="52" rx="6"/>
+      <text x="360" y="198" text-anchor="middle" font-size="10" font-weight="600">AIService + signals</text>
+      <text x="360" y="214" text-anchor="middle" class="t-xs">Rules + optional RF batch anomalies</text>
+      <rect class="box-alt" x="480" y="178" width="200" height="52" rx="6"/>
+      <text x="580" y="198" text-anchor="middle" font-size="10" font-weight="600">Narrative insights</text>
+      <text x="580" y="214" text-anchor="middle" class="t-xs">Savings trends, category spikes, tips</text>
+      <line x1="360" y1="178" x2="140" y2="178"/>
+      <line x1="360" y1="178" x2="360" y2="178"/>
+      <line x1="360" y1="178" x2="580" y2="178"/>
+      <!-- Row 5: Export -->
+      <line x1="140" y1="230" x2="360" y2="252"/>
+      <line x1="580" y1="230" x2="360" y2="252"/>
+      <polygon points="360,258 356,252 364,252" fill="#64748b"/>
+      <rect class="box" x="260" y="258" width="200" height="44" rx="6"/>
+      <text x="360" y="278" text-anchor="middle" font-size="10" font-weight="600">Export (client-side)</text>
+      <text x="360" y="292" text-anchor="middle" class="t-xs">jsPDF + CSV — summary tables from same aggregates</text>
+      <text x="360" y="330" text-anchor="middle" class="t-xs">AI bullet list appears on screen; PDF today emphasizes KPIs + tables (extend PDF to append insight text if desired).</text>
+    </svg>
+    <div class="flow-legend">
+      <span><i class="db"></i> Database</span>
+      <span><i class="app"></i> React / logic</span>
+      <span><i class="ml"></i> ML / signals</span>
+    </div>
+  </div>
+  <h3>Steps in one paragraph</h3>
+  <ol>
+    <li><strong>Capture:</strong> The user adds transactions (and may scan a receipt; Flask returns text and suggested amount before save).</li>
+    <li><strong>Persist:</strong> Rows are stored with <code>user_id</code>; RLS prevents cross-user reads.</li>
+    <li><strong>Transform:</strong> The SPA aggregates history for charts; <code>AIService</code> builds insight signals (including optional <code>/detect-anomaly-batch</code>) and rule-based monthly insights.</li>
+    <li><strong>Deliver:</strong> Dashboard and Reports show visuals + highlight cards; <strong>Export</strong> runs entirely in the browser (no separate PDF server).</li>
+  </ol>
 </section>
 
 <section class="slide" id="slide9-database">
@@ -426,8 +698,8 @@
   <ul>
     <li><strong>0:00–0:45</strong> — Title, team, one-sentence value proposition (UniGuard Smart Money Tracker).</li>
     <li><strong>0:45–3:30</strong> — Problem, objectives, scope, one literature slide, methodology (compressed if needed).</li>
-    <li><strong>3:30–5:30</strong> — Architecture flowchart, database design (ER), REST endpoints; highlight hybrid AI and RLS.</li>
-    <li><strong>5:30–9:30</strong> — <strong>Live demo:</strong> login → dashboard (Nexus) → add or show transaction with AI category → budget or goal screen → receipt scan or anomaly example → achievements if time.</li>
+    <li><strong>3:30–5:30</strong> — Architecture flowchart, <strong>feature map</strong> (all routes), <strong>data journey</strong> slide (insights → PDF), database (ER), REST endpoints; highlight hybrid AI and RLS.</li>
+    <li><strong>5:30–9:30</strong> — <strong>Live demo:</strong> login → dashboard (Nexus) → transactions (AI category) → budget pods → goals → <strong>Reports</strong> (charts + AI highlights + <strong>Export PDF/CSV</strong>) → companion or achievements if time.</li>
     <li><strong>9:30–10:00</strong> — Closing: what was learned, limitations, future work; transition to panel.</li>
   </ul>
   <p><span class="label">Demo checklist:</span> Preload test data; confirm Flask, frontend env (<code>VITE_AI_API_URL</code>), and Supabase keys; if demoing OCR, have a clear receipt image ready; mute non-essential browser extensions.</p>
@@ -441,14 +713,44 @@
     <li><strong>Anomaly:</strong> Random Forest (with alternatives such as Decision Tree / Isolation Forest in pipeline work); features include transaction_type, category, amount_ratio, payment_mode; labels often derived from per-user tails of amount_ratio.</li>
     <li><strong>Artifacts:</strong> e.g. <code>transaction_rf_pipeline.pkl</code>, <code>anomaly_rf_pipeline.pkl</code> under <code>ml_pipeline/</code> or backend training folders.</li>
   </ul>
-  <h3>Core UX modules (from project report)</h3>
+  <h3>Route map (quick scan — matches <code>App.tsx</code>)</h3>
+  <table class="route-table">
+    <thead><tr><th>Path</th><th>Screen</th></tr></thead>
+    <tbody>
+      <tr><td>/</td><td>Auth (landing)</td></tr>
+      <tr><td>/auth · /login · /register</td><td>Sign in / sign up</td></tr>
+      <tr><td>/onboarding</td><td>One-time survey → <code>profiles</code></td></tr>
+      <tr><td>/dashboard</td><td>Financial Nexus (3D, stats, wellness, predictions)</td></tr>
+      <tr><td>/transactions</td><td>Ledger, AI categorize, receipt upload</td></tr>
+      <tr><td>/budget-ports</td><td>Flux Pods, forecasts, AI allocation hints</td></tr>
+      <tr><td>/goals</td><td>Savings goals, projections</td></tr>
+      <tr><td>/companion</td><td>Money coach (chat + context)</td></tr>
+      <tr><td>/reports</td><td>Charts, AI insights, CSV + PDF export</td></tr>
+      <tr><td>/savings-vault</td><td>Locked savings</td></tr>
+      <tr><td>/family-finance</td><td>Household views</td></tr>
+      <tr><td>/investments</td><td>Investment tracking</td></tr>
+      <tr><td>/achievements</td><td>Badges &amp; milestones</td></tr>
+      <tr><td>/weekly-challenges</td><td>Weekly engagement</td></tr>
+      <tr><td>/leaderboard</td><td>Anonymous savings leaderboard</td></tr>
+      <tr><td>/settings</td><td>Profile &amp; preferences</td></tr>
+    </tbody>
+  </table>
+  <h3>Insight &amp; export pipelines (frontend)</h3>
   <ul>
-    <li>Financial Nexus: Three.js 3D scene; quick stats; wellness score; predictions feed; anomaly summary; time machine; notifications.</li>
-    <li>Transaction center: natural-language quick entry; AI recategorize; search/filter; receipt upload.</li>
-    <li>Budget Ports / Flux Pods: velocity, health states, AI forecasts and suggestions.</li>
-    <li>Goals: deadlines, contributions, Monte Carlo–style success visualization.</li>
-    <li>AI companion: intents mapped to dashboard insights; optional voice.</li>
-    <li>Reports, savings vault, family finance, investments, achievements.</li>
+    <li><strong>AIService:</strong> Initialized with the user’s transactions; <code>getReportInsightsAsync</code> combines <strong>insight model signals</strong> (category quality, anomaly summary — optional RF batch) with <strong>month-over-month rules</strong> (savings rate, category variance, streaks).</li>
+    <li><strong>Smart Money pipeline:</strong> Deterministic stages — expenses → aggregates → baseline report text → categorization evaluation (see <code>smart-money/pipeline.ts</code>).</li>
+    <li><strong>PDF/CSV:</strong> Generated in-browser on Reports (jsPDF); PDF is summary tables + KPIs; extend to append AI bullets if desired.</li>
+  </ul>
+  <h3>Core UX modules (detail)</h3>
+  <ul>
+    <li><strong>Financial Nexus (</strong><code>/dashboard</code><strong>):</strong> Three.js scene; quick stats; wellness score; predictions feed; anomaly summary; time machine; notifications.</li>
+    <li><strong>Transaction center (</strong><code>/transactions</code><strong>):</strong> Quick entry; AI recategorize; search/filter; receipt upload to Flask.</li>
+    <li><strong>Budget Ports (</strong><code>/budget-ports</code><strong>):</strong> Velocity, health states, AI forecasts and suggestions.</li>
+    <li><strong>Goals (</strong><code>/goals</code><strong>):</strong> Deadlines, contributions, success visualization.</li>
+    <li><strong>Money coach (</strong><code>/companion</code><strong>):</strong> Chat with transaction/goal context; optional Gemini when configured.</li>
+    <li><strong>Reports (</strong><code>/reports</code><strong>):</strong> Recharts analytics; AI highlights; export.</li>
+    <li><strong>Gamification &amp; social (</strong><code>/achievements</code>, <code>/weekly-challenges</code>, <code>/leaderboard</code><strong>):</strong> Engagement and anonymous leaderboard.</li>
+    <li><strong>Other modules:</strong> Savings vault, family finance, investments, settings.</li>
   </ul>
   <h3>Unique differentiators (talking points)</h3>
   <ol>
@@ -457,6 +759,7 @@
     <li>Flux Pods with velocity and AI-assisted allocation narrative.</li>
     <li>On-premise OCR path without mandatory cloud API keys.</li>
     <li>Scale-invariant anomaly features for diverse users and currencies.</li>
+    <li>End-to-end surface area: auth → tracking → budgets → goals → reports with <strong>in-browser PDF/CSV</strong> — no separate report server.</li>
   </ol>
 </section>
 

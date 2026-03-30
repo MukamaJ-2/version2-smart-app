@@ -8,6 +8,9 @@
 #   VITE_AI_API_URL = your Flask API URL (no trailing slash)
 # Enable "Available at Build Time" for every VITE_* (Vite embeds them at npm run build).
 # Redeploy after saving so the build picks them up.
+#
+# If Settings → “Build …” stays empty on production: add Variable VITE_GIT_SHA with Railway’s
+# reference to the deploy commit (see Railway → Variables → “Reference” / RAILWAY_GIT_COMMIT_SHA).
 
 [build]
 builder = "NIXPACKS"
