@@ -32,6 +32,7 @@ const ML_LABEL_TO_APP: Record<string, string> = {
   "Legal & Fees": "Miscellaneous",
   "Kids & Family": "Miscellaneous",
   Other: "Miscellaneous",
+  Income: "Income",
 };
 
 /**

@@ -199,6 +199,9 @@ async function parseNaturalLanguage(input: string): Promise<ParsedTransaction | 
       const aiResult = await aiResponse.json();
       const raw = aiResult.category as string;
       category = normalizeMlCategoryForApp(raw, APP_CATEGORIES);
+    } else {
+      const aiResult = aiService.categorizeTransaction(trimmed, amount || 1, undefined, type);
+      category = normalizeMlCategoryForApp(aiResult.category, APP_CATEGORIES);
     }
   } catch (error) {
     console.error("Failed to fetch ML categorization:", error);
@@ -1380,6 +1383,7 @@ export default function Transactions() {
 
                 const textToCategorize = parsed.rawText.trim() || parsed.extractedText.join(" ");
                 let category = "Miscellaneous";
+                let mlCategoryOk = false;
                 try {
                   const catRes = await aiFetch(`/api/v1/categorize`, {
                     method: "POST",
@@ -1389,15 +1393,25 @@ export default function Transactions() {
                   if (catRes.ok) {
                     const data = await catRes.json();
                     category = normalizeMlCategoryForApp(data.category as string | undefined, APP_CATEGORIES);
+                    mlCategoryOk = true;
                   }
                 } catch {
-                  category = "Miscellaneous";
+                  // network / missing VITE_AI_API_URL — fallback below
                 }
 
                 const merchant = parsed.structured?.merchant ?? parsed.extractedText[0];
                 const amount = typeof parsed.structured?.amount === "number" && parsed.structured.amount > 0
                   ? parsed.structured.amount
                   : parsed.suggestedAmount;
+                if (!mlCategoryOk) {
+                  const aiResult = aiService.categorizeTransaction(
+                    textToCategorize,
+                    typeof amount === "number" && amount > 0 ? amount : 1,
+                    merchant != null ? String(merchant) : undefined,
+                    "expense"
+                  );
+                  category = normalizeMlCategoryForApp(aiResult.category, APP_CATEGORIES);
+                }
                 const receiptDate = parsed.structured?.date;
                 const description =
                   merchant

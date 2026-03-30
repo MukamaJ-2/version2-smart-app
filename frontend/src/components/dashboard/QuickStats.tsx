@@ -5,6 +5,11 @@ import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { aiService } from "@/lib/ai/ai-service";
+import {
+  filterTransactionsThroughDate,
+  getPastViewAsOfEnd,
+  isCreatedOnOrBefore,
+} from "@/lib/time-machine";
 
 interface Transaction {
   id: string;
@@ -18,6 +23,7 @@ interface Goal {
   name: string;
   deadline: string;
   status: "on-track" | "mild-pressure" | "critical";
+  created_at?: string;
 }
 
 const colorClasses = {
@@ -75,7 +81,7 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
       setTransactions((txData ?? []) as Transaction[]);
       const { data: goalData } = await supabase
         .from("goals")
-        .select("id,name,deadline,status")
+        .select("id,name,deadline,status,created_at")
         .eq("user_id", userData.user.id);
       if (!isActive) return;
       setGoals((goalData ?? []) as Goal[]);
@@ -139,16 +145,28 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
   }, [userId]);
 
   const stats = useMemo(() => {
-    const income = transactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
-    const expense = transactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
+    const asOfEnd = getPastViewAsOfEnd(simulatedMonths);
+    const txsForStats =
+      simulatedMonths < 0 && asOfEnd
+        ? filterTransactionsThroughDate(transactions, asOfEnd)
+        : transactions;
+    const goalsForStats =
+      simulatedMonths < 0 && asOfEnd
+        ? goals.filter((g) => isCreatedOnOrBefore(g.created_at, asOfEnd))
+        : goals;
+
+    const income = txsForStats.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
+    const expense = txsForStats.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
     const balance = income - expense;
     const savingsRate = income > 0 ? Math.max(0, Math.min(1, (income - expense) / income)) : 0;
     const healthScore = Math.round(savingsRate * 100);
-    const activeGoals = goals.length;
-    const onTrackRatio = goals.length
-      ? Math.round((goals.filter((g) => g.status === "on-track").length / goals.length) * 100)
+    const activeGoals = goalsForStats.length;
+    const onTrackRatio = goalsForStats.length
+      ? Math.round(
+          (goalsForStats.filter((g) => g.status === "on-track").length / goalsForStats.length) * 100
+        )
       : 0;
-    const sortedDeadlines = goals
+    const sortedDeadlines = goalsForStats
       .map((goal) => ({ name: goal.name, date: new Date(goal.deadline) }))
       .filter((goal) => !Number.isNaN(goal.date.getTime()))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -166,14 +184,14 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
       const simulatedState = aiService.simulateFutureState(
         simulatedMonths,
         [], // we don't need pods for quick stats currently
-        goals.map(g => ({ ...g, targetAmount: 0, currentAmount: 0, monthlyContribution: 0 })), // mock for now, we just need net worth generally
+        goals.map((g) => ({ ...g, targetAmount: 0, currentAmount: 0, monthlyContribution: 0 })), // mock for now, we just need net worth generally
         balance
       );
       displayBalance = simulatedState.projectedNetWorth;
       // If balance is going up, health is good.
-      displayHealthScore = Math.min(100, healthScore + (simulatedMonths * 2));
-      displayOnTrackRatio = Math.min(100, onTrackRatio + (simulatedMonths * 5));
-      daysToDeadline = Math.max(0, daysToDeadline - (simulatedMonths * 30));
+      displayHealthScore = Math.min(100, healthScore + simulatedMonths * 2);
+      displayOnTrackRatio = Math.min(100, onTrackRatio + simulatedMonths * 5);
+      daysToDeadline = Math.max(0, daysToDeadline - simulatedMonths * 30);
     }
 
     const balanceDisplay = new Intl.NumberFormat("en-UG", {
@@ -182,9 +200,16 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
       maximumFractionDigits: 0,
     }).format(Math.abs(displayBalance));
 
+    const balanceLabel =
+      simulatedMonths > 0
+        ? `Balance in +${simulatedMonths} mo (guess)`
+        : simulatedMonths < 0
+          ? "Balance (through then)"
+          : "Your balance";
+
     return [
       {
-        label: simulatedMonths > 0 ? `Balance in +${simulatedMonths} mo (guess)` : "Your balance",
+        label: balanceLabel,
         value: balanceDisplay,
         change: income > 0 ? `+${new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(income)}` : "No income yet",
         isPositive: income > 0 ? displayBalance >= 0 : null,
@@ -193,7 +218,12 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
         link: "/transactions",
       },
       {
-        label: simulatedMonths > 0 ? "Score ahead (guess)" : "Savings score",
+        label:
+          simulatedMonths > 0
+            ? "Score ahead (guess)"
+            : simulatedMonths < 0
+              ? "Savings score (then)"
+              : "Savings score",
         value: `${displayHealthScore}`,
         suffix: "/100",
         change: income > 0 ? `${displayHealthScore} out of 100` : "No data yet",
@@ -206,8 +236,8 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
         label: "Active Goals",
         value: `${activeGoals}`,
         suffix: " goals",
-        change: goals.length ? `${displayOnTrackRatio}% on track` : "No goals yet",
-        isPositive: goals.length ? displayOnTrackRatio >= 50 : null,
+        change: goalsForStats.length ? `${displayOnTrackRatio}% on track` : "No goals yet",
+        isPositive: goalsForStats.length ? displayOnTrackRatio >= 50 : null,
         icon: Target,
         color: "accent",
         link: "/goals",

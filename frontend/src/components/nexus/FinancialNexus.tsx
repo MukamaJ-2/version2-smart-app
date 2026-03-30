@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils";
 import { FEATURE_LABELS } from "@/lib/feature-labels";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { aiService } from "@/lib/ai/ai-service";
+import {
+  estimateMonthlyIncomeFromTransactions,
+  filterTransactionsThroughDate,
+  getPastViewAsOfEnd,
+  isCreatedOnOrBefore,
+  toTrainingTransactions,
+} from "@/lib/time-machine";
 import * as THREE from "three";
 
 interface ReceiptItem {
@@ -96,17 +103,26 @@ interface Transaction {
   id: string;
   amount: number;
   type: "income" | "expense";
+  date: string;
+  description?: string;
+  category?: string;
 }
 
 interface FluxPod {
   id: string;
+  name?: string;
   allocated: number;
   spent: number;
+  created_at?: string;
 }
 
 interface Goal {
   id: string;
   name: string;
+  created_at?: string;
+  target_amount?: number;
+  current_amount?: number;
+  monthly_contribution?: number;
 }
 
 function NexusNode({ position, color, label, value, size = 0.5, onClick, link }: NexusNodeProps) {
@@ -419,7 +435,7 @@ export default function FinancialNexus({
       setUserId(userData.user.id);
       const { data: txData } = await supabase
         .from("transactions")
-        .select("id,amount,type")
+        .select("id,amount,type,date,description,category")
         .eq("user_id", userData.user.id);
       if (!isActive) return;
       setTransactions((txData ?? []) as Transaction[]);
@@ -514,6 +530,21 @@ export default function FinancialNexus({
     };
   }, [userId]);
 
+  useEffect(() => {
+    if (transactions.length === 0) return;
+    const training = toTrainingTransactions(
+      transactions.map((tx) => ({
+        description: tx.description,
+        amount: tx.amount,
+        category: tx.category,
+        type: tx.type,
+        date: tx.date,
+      }))
+    );
+    const monthlyIncome = estimateMonthlyIncomeFromTransactions(transactions);
+    aiService.initialize(training, monthlyIncome);
+  }, [transactions]);
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-UG", {
       style: "currency",
@@ -522,9 +553,25 @@ export default function FinancialNexus({
     }).format(value);
 
   const nodes = useMemo(() => {
-    const income = transactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
-    const expenses = transactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
-    const podsAllocated = fluxPods.reduce((sum, pod) => sum + pod.allocated, 0);
+    const asOfEnd = getPastViewAsOfEnd(simulatedMonths);
+    const txForPast =
+      simulatedMonths < 0 && asOfEnd
+        ? filterTransactionsThroughDate(transactions, asOfEnd)
+        : transactions;
+    const txForMetrics = simulatedMonths > 0 ? transactions : txForPast;
+
+    const podsForView =
+      simulatedMonths < 0 && asOfEnd
+        ? fluxPods.filter((p) => isCreatedOnOrBefore(p.created_at, asOfEnd))
+        : fluxPods;
+    const goalsForView =
+      simulatedMonths < 0 && asOfEnd
+        ? goals.filter((g) => isCreatedOnOrBefore(g.created_at, asOfEnd))
+        : goals;
+
+    const income = txForMetrics.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
+    const expenses = txForMetrics.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
+    const podsAllocated = podsForView.reduce((sum, pod) => sum + pod.allocated, 0);
     const netWorth = income - expenses;
 
     // Default sizes
@@ -535,7 +582,7 @@ export default function FinancialNexus({
 
     let displayNetWorth = netWorth;
     let displayExpenses = expenses;
-    let goalsValue = goals.length ? `${goals.length} Active` : "No Goals";
+    let goalsValue = goalsForView.length ? `${goalsForView.length} Active` : "No Goals";
 
     // Health-based expense node coloring
     const expenseRatio = income > 0 ? expenses / income : 0;
@@ -544,20 +591,27 @@ export default function FinancialNexus({
     if (simulatedMonths > 0) {
       const simulatedState = aiService.simulateFutureState(
         simulatedMonths,
-        fluxPods.map(p => ({ ...p, category: p.name || 'Unknown' })),
-        goals.map(g => ({ ...g, targetAmount: g.target_amount || 0, currentAmount: g.current_amount || 0, monthlyContribution: g.monthly_contribution || 0 })),
+        fluxPods.map((p) => ({ ...p, category: p.name || "Unknown" })),
+        goals.map((g) => ({
+          ...g,
+          targetAmount: g.target_amount || 0,
+          currentAmount: g.current_amount || 0,
+          monthlyContribution: g.monthly_contribution || 0,
+        })),
         netWorth
       );
 
       displayNetWorth = simulatedState.projectedNetWorth;
       const totalProjectedPodSpend = simulatedState.projectedPods.reduce((a, b) => a + b.projectedSpent, 0);
-      displayExpenses = expenses + (totalProjectedPodSpend * simulatedMonths);
+      displayExpenses = expenses + totalProjectedPodSpend * simulatedMonths;
 
       // Animate sizes based on changes
-      netWorthSize = displayNetWorth > netWorth ? 1.0 : (displayNetWorth < netWorth ? 0.6 : 0.8);
+      netWorthSize = displayNetWorth > netWorth ? 1.0 : displayNetWorth < netWorth ? 0.6 : 0.8;
       expensesSize = 0.5 + Math.min(simulatedMonths * 0.05, 0.4);
 
-      const goalsProjected = simulatedState.projectedGoals.filter(g => g.projectedAmount >= g.targetAmount).length;
+      const goalsProjected = simulatedState.projectedGoals.filter(
+        (g) => g.projectedAmount >= g.targetAmount
+      ).length;
       if (goalsProjected > 0) {
         goalsValue = `${goalsProjected} Achieved in +${simulatedMonths}M`;
         goalsSize = 0.8; // Grow if we hit goals!
@@ -566,8 +620,10 @@ export default function FinancialNexus({
       }
     }
 
+    const incomeLabel = simulatedMonths < 0 ? "Income (through then)" : "Income";
+
     return [
-      { position: [3, 0.5, 0] as [number, number, number], color: "#22c55e", label: "Income", value: formatCurrency(income), link: "/transactions", size: 0.5 },
+      { position: [3, 0.5, 0] as [number, number, number], color: "#22c55e", label: incomeLabel, value: formatCurrency(income), link: "/transactions", size: 0.5 },
       { position: [-2.5, 1, 1.5] as [number, number, number], color: "#00d4ff", label: FEATURE_LABELS.budgets, value: formatCurrency(podsAllocated), link: "/budget-ports", size: podsSize },
       { position: [-1, -1.5, 2.5] as [number, number, number], color: "#f59e0b", label: "Goals", value: goalsValue, link: "/goals", size: goalsSize },
       { position: [1.5, -1, -2.5] as [number, number, number], color: "#a855f7", label: "Money left", value: formatCurrency(displayNetWorth), link: "/reports", size: netWorthSize },
@@ -577,12 +633,17 @@ export default function FinancialNexus({
 
   // Compute health score for scene effects
   const healthScore = useMemo(() => {
-    const income = transactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
-    const expenses = transactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
+    const asOfEnd = getPastViewAsOfEnd(simulatedMonths);
+    const txs =
+      simulatedMonths < 0 && asOfEnd
+        ? filterTransactionsThroughDate(transactions, asOfEnd)
+        : transactions;
+    const income = txs.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
+    const expenses = txs.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
     if (income <= 0) return 0.5;
     const savingsRate = Math.max(0, (income - expenses) / income);
     return Math.min(1, savingsRate * 2); // normalize: 50% savings rate = 1.0
-  }, [transactions]);
+  }, [transactions, simulatedMonths]);
 
   // Hook to watch receiptData map to flux pod nodes
   useEffect(() => {

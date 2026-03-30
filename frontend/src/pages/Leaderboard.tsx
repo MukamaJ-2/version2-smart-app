@@ -56,20 +56,28 @@ export default function Leaderboard() {
         setEntries([]);
       } else {
         const raw = (data ?? []) as LeaderboardEntry[];
-        const privatized = raw.map((e) => {
-          const p = privatizeLeaderboardEntry(e.total_income, e.total_expenses, e.savings_rate, 0.5, {
-            budgetAdherence: e.budget_adherence,
-            leaderboardScore: e.leaderboard_score,
+        const privatized = raw
+          .map((e) => {
+            const p = privatizeLeaderboardEntry(e.total_income, e.total_expenses, e.savings_rate, 0.5, {
+              budgetAdherence: e.budget_adherence,
+              leaderboardScore: e.leaderboard_score,
+            });
+            return {
+              ...e,
+              total_income: p.totalIncome,
+              total_expenses: p.totalExpenses,
+              savings_rate: p.savingsRate,
+              budget_adherence: p.budgetAdherence,
+              leaderboard_score: p.leaderboardScore,
+            };
+          })
+          // Rank by the same percentage users see (privatized composite 0–1), not only DB order — DP noise
+          // otherwise made #1 show a lower % than #2.
+          .sort((a, b) => {
+            const d = b.leaderboard_score - a.leaderboard_score;
+            if (d !== 0) return d;
+            return a.user_id.localeCompare(b.user_id);
           });
-          return {
-            ...e,
-            total_income: p.totalIncome,
-            total_expenses: p.totalExpenses,
-            savings_rate: p.savingsRate,
-            budget_adherence: p.budgetAdherence,
-            leaderboard_score: p.leaderboardScore,
-          };
-        });
         setEntries(privatized);
       }
       setIsLoading(false);
@@ -102,7 +110,7 @@ export default function Leaderboard() {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
-            <span>Ranked by score: savings + budget discipline (anonymous)</span>
+            <span>Ranked by composite score % (savings + on-budget when you use budget ports)</span>
             <span className="flex items-center gap-1 text-xs" title="Differential privacy: values are slightly perturbed to protect individual privacy">
               <Shield className="w-3.5 h-3.5" />
               DP

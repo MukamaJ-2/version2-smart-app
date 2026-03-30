@@ -63,6 +63,7 @@ def load_model():
         project_root = Path(__file__).resolve().parent.parent
         model_paths = [
             project_root / "ml_pipeline" / "transaction_rf_pipeline.pkl",
+            project_root / "backend" / "training" / "models" / "transaction_rf_pipeline.pkl",
             project_root / "backend" / "training" / "models" / "transaction_categorizer" / "transaction_rf_pipeline.pkl",
             # Legacy layout: some repos store the text categorizer next to anomaly pipelines
             project_root / "backend" / "training" / "models" / "anomaly_detector" / "transaction_rf_pipeline.pkl",
@@ -318,6 +319,46 @@ def _get_categorizer():
     return model if model and model is not False else None
 
 
+def _streaming_entertainment_hint(text: str):
+    """
+    High-precision substrings for streaming / pay-TV / gaming subscriptions.
+    The TF-IDF model often confuses these with Healthcare (word 'subscription'); override before sklearn.
+    """
+    if not text or not isinstance(text, str):
+        return None
+    t = text.lower()
+    hints = [
+        ("netflix", "Entertainment"),
+        ("spotify", "Entertainment"),
+        ("showmax", "Entertainment"),
+        ("prime video", "Entertainment"),
+        ("amazon prime", "Entertainment"),
+        ("apple tv", "Entertainment"),
+        ("disney+", "Entertainment"),
+        ("disney plus", "Entertainment"),
+        ("hbo max", "Entertainment"),
+        ("hulu", "Entertainment"),
+        ("youtube premium", "Entertainment"),
+        ("paramount+", "Entertainment"),
+        ("crunchyroll", "Entertainment"),
+        ("multichoice", "Entertainment"),
+        ("dstv", "Entertainment"),
+        ("startimes", "Entertainment"),
+        ("star times", "Entertainment"),
+        ("zuku tv", "Entertainment"),
+        ("gotv", "Entertainment"),
+        ("go tv", "Entertainment"),
+        ("azam tv", "Entertainment"),
+        ("steam", "Entertainment"),
+        ("playstation", "Entertainment"),
+        ("xbox live", "Entertainment"),
+    ]
+    for sub, cat in hints:
+        if sub in t:
+            return cat
+    return None
+
+
 def _uganda_local_category_hint(text: str):
     """
     Map common Uganda merchant / description terms to CSV-style labels before sklearn.
@@ -394,6 +435,14 @@ def categorize():
         return jsonify({"error": "Missing 'text' in request body"}), 400
 
     text = data.get("text", "")
+
+    hint = _streaming_entertainment_hint(text)
+    if hint:
+        return jsonify({
+            "category": hint,
+            "confidence": 0.94,
+            "alternatives": [],
+        })
 
     hint = _uganda_local_category_hint(text)
     if hint:

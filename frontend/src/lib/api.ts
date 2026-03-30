@@ -6,8 +6,9 @@ function resolveAiBase(): string {
     return raw.trim().replace(/\/$/, "");
   }
   // Never bake localhost into production bundles — set VITE_AI_API_URL at build (e.g. Railway).
+  // Default matches backend/app.py PORT default (5000). Use PORT=5001 + VITE_AI_API_URL=http://127.0.0.1:5001 if needed.
   if (import.meta.env.DEV) {
-    return "http://127.0.0.1:5001";
+    return "http://127.0.0.1:5000";
   }
   return "";
 }

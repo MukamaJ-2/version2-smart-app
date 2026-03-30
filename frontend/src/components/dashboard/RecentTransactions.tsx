@@ -3,7 +3,9 @@ import { ArrowDownLeft, ArrowUpRight, Briefcase, Car, Coffee, ShoppingBag, Utens
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { filterTransactionsThroughDate, getPastViewAsOfEnd } from "@/lib/time-machine";
 
 interface Transaction {
   id: string;
@@ -23,7 +25,7 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export default function RecentTransactions() {
+export default function RecentTransactions({ simulatedMonths = 0 }: { simulatedMonths?: number }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -76,15 +78,22 @@ export default function RecentTransactions() {
     };
   }, [userId]);
 
+  const pastAsOfLabel = useMemo(() => getPastViewAsOfEnd(simulatedMonths), [simulatedMonths]);
+
   const recentTransactions = useMemo(() => {
-    return [...transactions]
+    const asOfEnd = getPastViewAsOfEnd(simulatedMonths);
+    const source =
+      simulatedMonths < 0 && asOfEnd
+        ? filterTransactionsThroughDate(transactions, asOfEnd)
+        : transactions;
+    return [...source]
       .sort((a, b) => {
         const dateA = new Date(`${a.date}T${a.time || "00:00"}`).getTime();
         const dateB = new Date(`${b.date}T${b.time || "00:00"}`).getTime();
         return dateB - dateA;
       })
       .slice(0, 5);
-  }, [transactions]);
+  }, [transactions, simulatedMonths]);
 
   const categoryIconMap: Record<string, typeof Coffee> = {
     Dining: Utensils,
@@ -105,7 +114,11 @@ export default function RecentTransactions() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-display text-sm font-bold text-foreground tracking-tight">Recent Activity</h3>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Latest transactions</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            {simulatedMonths < 0 && pastAsOfLabel
+              ? `Through ${format(pastAsOfLabel, "MMMM yyyy")}`
+              : "Latest transactions"}
+          </p>
         </div>
         <Link
           to="/transactions"
@@ -118,7 +131,9 @@ export default function RecentTransactions() {
       <div className="space-y-2">
         {recentTransactions.length === 0 && (
           <div className="text-xs text-muted-foreground">
-            No transactions yet. Add your first entry to see activity here.
+            {simulatedMonths < 0 && pastAsOfLabel
+              ? "No transactions on record through that month."
+              : "No transactions yet. Add your first entry to see activity here."}
           </div>
         )}
         {recentTransactions.map((tx, index) => {

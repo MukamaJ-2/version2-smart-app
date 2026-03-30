@@ -248,7 +248,7 @@ export default function Index() {
           </div>
           <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <RecentTransactions />
+              <RecentTransactions simulatedMonths={simulatedMonths} />
             </div>
           </div>
           <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl">
