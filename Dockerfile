@@ -13,7 +13,9 @@ COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ backend/
-COPY ml_pipeline/ ml_pipeline/
+# Do not COPY ml_pipeline/ — empty dirs or .dockerignore can make COPY fail on Railway.
+# Runtime loads .pkl from backend/training or ml_pipeline when present; empty ml_pipeline is OK.
+RUN mkdir -p ml_pipeline
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
