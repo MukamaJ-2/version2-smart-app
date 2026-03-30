@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { computeGamificationState } from "@/lib/gamification/state-machine";
 import { getNextAchievable, getPrerequisites } from "@/lib/gamification/achievement-dag";
+import { getTotalWeeklyBonusPoints } from "@/lib/gamification/weekly-challenges";
 
 /* ───────── Types ───────── */
 
@@ -616,6 +618,8 @@ export default function Achievements() {
   }, [transactions, goals, pods]);
 
   const totalPoints = achievements.filter((a) => a.unlocked).reduce((sum, a) => sum + a.points, 0);
+  const weeklyBonusPoints = getTotalWeeklyBonusPoints();
+  const displayTotalPoints = totalPoints + weeklyBonusPoints;
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const completionRate = achievements.length > 0 ? Math.min(100, (unlockedCount / achievements.length) * 100) : 0;
 
@@ -637,9 +641,9 @@ export default function Achievements() {
     });
   }, [totalPoints, goals, pods, transactions, unlockedCount]);
 
-  // Level system: every 200 points = 1 level
-  const level = Math.floor(totalPoints / 200) + 1;
-  const pointsInLevel = totalPoints % 200;
+  // Level system: every 200 points = 1 level (achievements + weekly challenge bonuses)
+  const level = Math.floor(displayTotalPoints / 200) + 1;
+  const pointsInLevel = displayTotalPoints % 200;
   const nextLevelAt = 200;
 
   const unlockedAchievements = achievements.filter((a) => a.unlocked);
@@ -667,6 +671,21 @@ export default function Achievements() {
             <p className="text-muted-foreground text-sm mt-1">
               Track your financial milestones and earn rewards
             </p>
+            <div className="flex flex-wrap gap-3 mt-3">
+              <Link
+                to="/weekly-challenges"
+                className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                <Zap className="w-4 h-4" />
+                Weekly challenges
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                Leaderboard
+              </Link>
+            </div>
           </div>
         </motion.header>
 
@@ -734,7 +753,12 @@ export default function Achievements() {
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Points</p>
-                <p className="font-mono text-2xl font-bold text-accent">{totalPoints}</p>
+                <p className="font-mono text-2xl font-bold text-accent">{displayTotalPoints}</p>
+                {weeklyBonusPoints > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {totalPoints} achievements + {weeklyBonusPoints} weekly
+                  </p>
+                )}
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-xl p-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Unlocked</p>

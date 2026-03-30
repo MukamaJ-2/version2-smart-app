@@ -13,6 +13,11 @@ import { detectAnomaly, type AnomalyResult } from "./models/anomaly-detector";
 import { detectRecurringPatterns, type RecurringPattern } from "./models/recurring-detector";
 import { optimizeBudget, type OptimizerInput, type OptimizerResult } from "./models/budget-optimizer";
 import type { TrainingTransaction } from "./training-data";
+import {
+  computeInsightModelSignals,
+  computeInsightModelSignalsAsync,
+  type InsightModelSignals,
+} from "./insightModelSignals";
 
 export interface AIInsight {
   id: number;
@@ -158,6 +163,18 @@ export class AIService {
   }
 
   /**
+   * Category quality + anomaly signals for insights, Smart Money, and Companion prompts.
+   */
+  getInsightModelSignals(): InsightModelSignals {
+    return computeInsightModelSignals(this.historicalTransactions);
+  }
+
+  /** Blends local rules + RF batch (when API is up) for Companion and Reports. */
+  async getInsightModelSignalsAsync(): Promise<InsightModelSignals> {
+    return computeInsightModelSignalsAsync(this.historicalTransactions);
+  }
+
+  /**
    * Get AI insights for dashboard
    */
   getDashboardInsights() {
@@ -178,6 +195,29 @@ export class AIService {
       totalIncome,
       transactionCount: this.historicalTransactions.length,
       topCategories: this.getTopCategories(),
+      modelSignals: this.getInsightModelSignals(),
+    };
+  }
+
+  /** Same as {@link getDashboardInsights} but anomaly block uses RF + local blend when backend is reachable. */
+  async getDashboardInsightsAsync() {
+    const totalSpending = this.historicalTransactions
+      .filter((tx) => tx.type === "expense")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    const totalIncome = this.historicalTransactions
+      .filter((tx) => tx.type === "income")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    const savingsRate = totalIncome > 0 ? (totalIncome - totalSpending) / totalIncome : 0;
+
+    return {
+      savingsRate: Math.round(savingsRate * 100),
+      totalSpending,
+      totalIncome,
+      transactionCount: this.historicalTransactions.length,
+      topCategories: this.getTopCategories(),
+      modelSignals: await this.getInsightModelSignalsAsync(),
     };
   }
 
@@ -308,11 +348,47 @@ export class AIService {
   }
 
   /**
-   * Generate dynamic insights based on transaction history
+   * Generate dynamic insights based on transaction history (local anomaly rules only).
    */
   public getReportInsights(): AIInsight[] {
+    if (this.historicalTransactions.length === 0) return [];
+    return this.buildReportInsightsWithSignals(this.getInsightModelSignals());
+  }
+
+  /** Insights with RF + local anomaly blend when the ML API is available. */
+  public async getReportInsightsAsync(): Promise<AIInsight[]> {
+    if (this.historicalTransactions.length === 0) return [];
+    const signals = await this.getInsightModelSignalsAsync();
+    return this.buildReportInsightsWithSignals(signals);
+  }
+
+  private buildReportInsightsWithSignals(signals: InsightModelSignals): AIInsight[] {
     const insights: AIInsight[] = [];
-    if (this.historicalTransactions.length === 0) return insights;
+    let id = 1;
+
+    if (signals.categoryQuality.expenseCount >= 3 && signals.categoryQuality.miscellaneousRatio >= 0.2) {
+      const pct = Math.round(signals.categoryQuality.miscellaneousRatio * 100);
+      insights.push({
+        id: id++,
+        type: signals.categoryQuality.miscellaneousRatio >= 0.35 ? "warning" : "info",
+        message: `${pct}% of expenses are in Miscellaneous — ${signals.categoryQuality.miscellaneousRatio >= 0.35 ? "recategorize where you can so" : "clearer labels help"} trends and ML tips match reality.`,
+        action: "Review categories",
+        actionPath: "/transactions",
+      });
+    }
+
+    if (signals.anomalySummary.flaggedCount >= 1) {
+      insights.push({
+        id: id++,
+        type: signals.anomalySummary.highSeverityCount > 0 ? "warning" : "info",
+        message:
+          signals.anomalySummary.highSeverityCount > 0
+            ? `${signals.anomalySummary.flaggedCount} recent expense(s) look unusual vs your history (${signals.anomalySummary.highSeverityCount} need a closer look).`
+            : `${signals.anomalySummary.flaggedCount} recent expense(s) are somewhat off your usual pattern.`,
+        action: "Review flagged items",
+        actionPath: "/transactions",
+      });
+    }
 
     // Helper to group by month
     const monthlyStats = this.getMonthlyStats();
@@ -325,12 +401,12 @@ export class AIService {
     
     if (months.length < 2) {
       insights.push({
-        id: 1,
+        id: id++,
         type: "info",
         message: "Track your finances for another month to unlock trend insights!",
-        action: "Add transactions"
+        action: "Add transactions",
       });
-      return insights;
+      return insights.slice(0, 6);
     }
 
     const latestMonth = months[months.length - 1];
@@ -347,7 +423,7 @@ export class AIService {
     if (rateDiff > 0.02) {
       const pct = Math.min(100, Math.max(0, Math.round(rateDiff * 100)));
       insights.push({
-        id: 1,
+        id: id++,
         type: "positive",
         message: `You kept more of your income this month than in ${prevMonth} (about ${pct}% more).`,
         action: "Nice — keep going",
@@ -356,7 +432,7 @@ export class AIService {
     } else if (rateDiff < -0.05) {
       const pct = Math.min(100, Math.max(0, Math.round(Math.abs(rateDiff) * 100)));
       insights.push({
-        id: 1,
+        id: id++,
         type: "warning",
         message: `You saved less of your income this month (about ${pct}% less than before).`,
         action: "See transactions",
@@ -373,7 +449,7 @@ export class AIService {
       if (avg > 0 && amount > avg * 1.25) {
         const pct = Math.min(999, Math.max(0, Math.round((amount / avg - 1) * 100)));
         insights.push({
-          id: insights.length + 1,
+          id: id++,
           type: "warning",
           message: `Spending on ${category} is ${pct}% higher than what you usually spend.`,
           action: `Check your ${category} budget`,
@@ -385,7 +461,7 @@ export class AIService {
     // 3. Performance Streaks
     if (latest.expenses < latest.income && prev.expenses < prev.income) {
       insights.push({
-        id: insights.length + 1,
+        id: id++,
         type: "positive",
         message: "You spent less than you earned for two months in a row.",
         action: "See rewards",
@@ -396,7 +472,7 @@ export class AIService {
     // 4. Default Info
     if (insights.length < 3) {
       insights.push({
-        id: insights.length + 1,
+        id: id++,
         type: "info",
         message: "Things look steady — you could nudge your savings goals a bit higher if you want.",
         action: "Open savings goals",
@@ -404,7 +480,7 @@ export class AIService {
       });
     }
 
-    return insights.slice(0, 3);
+    return insights.slice(0, 6);
   }
 
   private getMonthlyStats() {

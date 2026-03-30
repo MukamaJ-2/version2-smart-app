@@ -1,201 +1,177 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* UniGuard Wallet Design System
-   Aesthetic: Gooocolo — vibrant clarity with confident contrast
-   Day/night palettes with glass surfaces and neon accents
-*/
+/* UniGuard — warm ledger / editorial (not “template fintech”) */
 
 @layer base {
   :root {
-    /* Core Day Background */
-    --background: 210 40% 98%;
-    --foreground: 222 40% 12%;
+    --background: 42 38% 97%;
+    --foreground: 222 28% 14%;
 
-    /* Card surfaces with glass morphism */
-    --card: 0 0% 100%;
-    --card-foreground: 222 40% 12%;
-    --card-glow: 196 90% 45%;
+    --card: 42 45% 99%;
+    --card-foreground: 222 28% 14%;
+    --card-glow: 156 42% 32%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 40% 12%;
+    --popover: 42 45% 99%;
+    --popover-foreground: 222 28% 14%;
 
-    /* Primary: Vibrant Aqua */
-    --primary: 196 90% 45%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 196 95% 60%;
-    --primary-dim: 196 70% 35%;
+    --primary: 156 42% 28%;
+    --primary-foreground: 42 50% 98%;
+    --primary-glow: 156 45% 36%;
+    --primary-dim: 156 34% 22%;
 
-    /* Secondary: Electric Violet */
-    --secondary: 264 75% 62%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 270 80% 70%;
+    --secondary: 222 16% 38%;
+    --secondary-foreground: 42 40% 98%;
+    --secondary-glow: 222 18% 46%;
 
-    /* Accent: Coral Ember */
-    --accent: 24 95% 55%;
-    --accent-foreground: 0 0% 100%;
-    --accent-glow: 24 95% 65%;
+    --accent: 18 62% 44%;
+    --accent-foreground: 42 50% 98%;
+    --accent-glow: 18 58% 52%;
 
-    /* Muted surfaces */
-    --muted: 210 30% 94%;
-    --muted-foreground: 215 16% 42%;
+    --muted: 40 22% 93%;
+    --muted-foreground: 222 12% 40%;
 
-    /* Status Colors */
-    --success: 142 70% 40%;
-    --success-foreground: 0 0% 100%;
-    --success-glow: 142 75% 50%;
+    --success: 142 42% 34%;
+    --success-foreground: 42 50% 98%;
+    --success-glow: 142 45% 40%;
 
-    --warning: 35 95% 55%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 32 88% 46%;
+    --warning-foreground: 222 28% 12%;
 
-    --destructive: 0 80% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --destructive-glow: 0 85% 60%;
+    --destructive: 0 58% 44%;
+    --destructive-foreground: 42 50% 98%;
+    --destructive-glow: 0 55% 50%;
 
-    /* Infrastructure */
-    --border: 210 25% 90%;
-    --border-glow: 196 60% 70%;
-    --input: 210 30% 96%;
-    --ring: 196 90% 45%;
-    --radius: 0.75rem;
+    --border: 38 20% 86%;
+    --border-glow: 156 28% 70%;
+    --input: 40 18% 94%;
+    --ring: 156 42% 28%;
+    --radius: 0.5rem;
 
-    /* Financial Node Colors */
-    --income: 142 70% 40%;
-    --expense: 0 80% 50%;
-    --savings: 196 90% 45%;
-    --investment: 264 75% 62%;
-    --goal: 24 95% 55%;
+    --income: 142 42% 34%;
+    --expense: 0 58% 44%;
+    --savings: 156 42% 28%;
+    --investment: 222 22% 42%;
+    --goal: 18 62% 44%;
 
-    /* Glass Morphism */
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 222 20% 20% / 0.08;
-    --glass-highlight: 0 0% 100% / 0.6;
+    --glass-bg: 42 45% 99% / 0.92;
+    --glass-border: 222 18% 18% / 0.1;
+    --glass-highlight: 0 0% 100% / 0.45;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(196 90% 45%), hsl(210 90% 50%));
-    --gradient-secondary: linear-gradient(135deg, hsl(264 75% 62%), hsl(290 75% 55%));
-    --gradient-warm: linear-gradient(135deg, hsl(24 95% 55%), hsl(6 90% 56%));
-    --gradient-success: linear-gradient(135deg, hsl(142 70% 40%), hsl(164 70% 38%));
-    --gradient-danger: linear-gradient(135deg, hsl(0 80% 50%), hsl(340 80% 52%));
-    --gradient-space: linear-gradient(160deg, hsl(210 40% 98%) 0%, hsl(200 60% 96%) 45%, hsl(24 90% 96%) 100%);
-    --gradient-glow: radial-gradient(circle, hsl(196 90% 45% / 0.12) 0%, transparent 70%);
+    --gradient-primary: linear-gradient(175deg, hsl(156 40% 30%) 0%, hsl(156 38% 24%) 100%);
+    --gradient-secondary: linear-gradient(165deg, hsl(222 18% 34%) 0%, hsl(222 14% 28%) 100%);
+    --gradient-warm: linear-gradient(160deg, hsl(18 58% 46%) 0%, hsl(16 52% 38%) 100%);
+    --gradient-success: linear-gradient(165deg, hsl(142 40% 34%) 0%, hsl(150 36% 30%) 100%);
+    --gradient-danger: linear-gradient(165deg, hsl(0 56% 44%) 0%, hsl(350 50% 38%) 100%);
+    --gradient-space: linear-gradient(
+      168deg,
+      hsl(42 38% 98%) 0%,
+      hsl(38 32% 94%) 42%,
+      hsl(32 28% 92%) 100%
+    );
+    --gradient-glow: radial-gradient(ellipse 80% 50% at 50% -10%, hsl(156 35% 45% / 0.14) 0%, transparent 55%);
 
-    /* Shadows */
-    --shadow-glow-sm: 0 0 10px hsl(196 90% 45% / 0.2);
-    --shadow-glow-md: 0 0 20px hsl(196 90% 45% / 0.3);
-    --shadow-glow-lg: 0 0 40px hsl(196 90% 45% / 0.35);
-    --shadow-glow-secondary: 0 0 20px hsl(264 75% 62% / 0.25);
-    --shadow-glow-success: 0 0 20px hsl(142 70% 40% / 0.25);
-    --shadow-glow-warning: 0 0 20px hsl(24 95% 55% / 0.25);
-    --shadow-glow-danger: 0 0 20px hsl(0 80% 50% / 0.25);
-    --shadow-card: 0 10px 30px hsl(220 30% 20% / 0.1);
+    --shadow-glow-sm: 0 2px 8px hsl(220 25% 18% / 0.08);
+    --shadow-glow-md: 0 8px 24px hsl(220 22% 15% / 0.1);
+    --shadow-glow-lg: 0 16px 48px hsl(220 20% 12% / 0.12);
+    --shadow-glow-secondary: 0 6px 20px hsl(222 20% 20% / 0.1);
+    --shadow-glow-success: 0 6px 20px hsl(142 35% 30% / 0.12);
+    --shadow-glow-warning: 0 6px 20px hsl(32 50% 40% / 0.12);
+    --shadow-glow-danger: 0 6px 20px hsl(0 45% 40% / 0.12);
+    --shadow-card: 0 1px 0 hsl(38 22% 82% / 0.85), 0 14px 36px hsl(220 18% 18% / 0.07);
 
-    /* Sidebar */
-    --sidebar-background: 210 40% 97%;
-    --sidebar-foreground: 222 30% 30%;
-    --sidebar-primary: 196 90% 45%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 30% 94%;
-    --sidebar-accent-foreground: 222 40% 12%;
-    --sidebar-border: 210 25% 90%;
-    --sidebar-ring: 196 90% 45%;
+    --sidebar-background: 40 28% 95%;
+    --sidebar-foreground: 222 18% 34%;
+    --sidebar-primary: 156 42% 28%;
+    --sidebar-primary-foreground: 42 50% 98%;
+    --sidebar-accent: 38 24% 91%;
+    --sidebar-accent-foreground: 222 28% 14%;
+    --sidebar-border: 36 20% 88%;
+    --sidebar-ring: 156 42% 28%;
   }
 
   .dark {
-    /* Core Space Background */
-    --background: 230 25% 5%;
-    --foreground: 200 20% 95%;
+    --background: 220 16% 9%;
+    --foreground: 42 22% 95%;
 
-    /* Card surfaces with glass morphism */
-    --card: 230 25% 8%;
-    --card-foreground: 200 20% 95%;
-    --card-glow: 185 100% 50%;
+    --card: 220 14% 12%;
+    --card-foreground: 42 22% 95%;
+    --card-glow: 156 38% 48%;
 
-    --popover: 230 25% 10%;
-    --popover-foreground: 200 20% 95%;
+    --popover: 220 14% 11%;
+    --popover-foreground: 42 22% 95%;
 
-    /* Primary: Electric Cyan */
-    --primary: 185 100% 50%;
-    --primary-foreground: 230 25% 5%;
-    --primary-glow: 185 100% 60%;
-    --primary-dim: 185 80% 30%;
+    --primary: 156 38% 48%;
+    --primary-foreground: 220 18% 8%;
+    --primary-glow: 156 42% 56%;
+    --primary-dim: 156 32% 32%;
 
-    /* Secondary: Violet Nebula */
-    --secondary: 270 80% 60%;
-    --secondary-foreground: 200 20% 95%;
-    --secondary-glow: 270 100% 70%;
+    --secondary: 220 14% 62%;
+    --secondary-foreground: 220 18% 10%;
+    --secondary-glow: 220 16% 70%;
 
-    /* Accent: Warm Amber */
-    --accent: 35 100% 55%;
-    --accent-foreground: 230 25% 5%;
-    --accent-glow: 35 100% 65%;
+    --accent: 18 58% 52%;
+    --accent-foreground: 220 18% 8%;
+    --accent-glow: 18 55% 58%;
 
-    /* Muted surfaces */
-    --muted: 230 20% 15%;
-    --muted-foreground: 200 15% 55%;
+    --muted: 220 12% 17%;
+    --muted-foreground: 220 10% 62%;
 
-    /* Status Colors */
-    --success: 150 80% 45%;
-    --success-foreground: 230 25% 5%;
-    --success-glow: 150 100% 55%;
+    --success: 142 40% 48%;
+    --success-foreground: 220 18% 8%;
+    --success-glow: 142 44% 56%;
 
-    --warning: 35 100% 55%;
-    --warning-foreground: 230 25% 5%;
+    --warning: 32 85% 52%;
+    --warning-foreground: 220 18% 8%;
 
-    --destructive: 0 80% 55%;
-    --destructive-foreground: 200 20% 95%;
-    --destructive-glow: 0 100% 65%;
+    --destructive: 0 55% 52%;
+    --destructive-foreground: 42 22% 98%;
+    --destructive-glow: 0 58% 58%;
 
-    /* Infrastructure */
-    --border: 230 20% 18%;
-    --border-glow: 185 50% 30%;
-    --input: 230 20% 12%;
-    --ring: 185 100% 50%;
-    --radius: 0.75rem;
+    --border: 220 12% 20%;
+    --border-glow: 156 25% 35%;
+    --input: 220 12% 15%;
+    --ring: 156 38% 48%;
+    --radius: 0.5rem;
 
-    /* Financial Node Colors */
-    --income: 150 80% 50%;
-    --expense: 0 80% 55%;
-    --savings: 185 100% 50%;
-    --investment: 270 80% 60%;
-    --goal: 35 100% 55%;
+    --income: 142 40% 48%;
+    --expense: 0 55% 52%;
+    --savings: 156 38% 48%;
+    --investment: 220 16% 58%;
+    --goal: 18 58% 52%;
 
-    /* Glass Morphism */
-    --glass-bg: 230 25% 8% / 0.6;
-    --glass-border: 200 20% 95% / 0.1;
-    --glass-highlight: 200 20% 95% / 0.05;
+    --glass-bg: 220 14% 12% / 0.88;
+    --glass-border: 42 15% 92% / 0.08;
+    --glass-highlight: 42 15% 96% / 0.04;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(185 100% 50%), hsl(200 100% 45%));
-    --gradient-secondary: linear-gradient(135deg, hsl(270 80% 60%), hsl(300 80% 50%));
-    --gradient-warm: linear-gradient(135deg, hsl(35 100% 55%), hsl(15 100% 50%));
-    --gradient-success: linear-gradient(135deg, hsl(150 80% 45%), hsl(170 80% 40%));
-    --gradient-danger: linear-gradient(135deg, hsl(0 80% 55%), hsl(340 80% 50%));
-    --gradient-space: radial-gradient(ellipse at 50% 0%, hsl(230 25% 12%) 0%, hsl(230 25% 5%) 70%);
-    --gradient-glow: radial-gradient(circle, hsl(185 100% 50% / 0.15) 0%, transparent 70%);
+    --gradient-primary: linear-gradient(175deg, hsl(156 36% 46%) 0%, hsl(156 32% 38%) 100%);
+    --gradient-secondary: linear-gradient(165deg, hsl(220 14% 48%) 0%, hsl(220 12% 40%) 100%);
+    --gradient-warm: linear-gradient(160deg, hsl(18 55% 52%) 0%, hsl(16 48% 44%) 100%);
+    --gradient-success: linear-gradient(165deg, hsl(142 38% 46%) 0%, hsl(150 34% 40%) 100%);
+    --gradient-danger: linear-gradient(165deg, hsl(0 52% 52%) 0%, hsl(350 45% 44%) 100%);
+    --gradient-space: linear-gradient(168deg, hsl(220 16% 11%) 0%, hsl(220 14% 7%) 100%);
+    --gradient-glow: radial-gradient(ellipse 70% 45% at 50% 0%, hsl(156 32% 42% / 0.18) 0%, transparent 55%);
 
-    /* Shadows */
-    --shadow-glow-sm: 0 0 10px hsl(185 100% 50% / 0.3);
-    --shadow-glow-md: 0 0 20px hsl(185 100% 50% / 0.4);
-    --shadow-glow-lg: 0 0 40px hsl(185 100% 50% / 0.5);
-    --shadow-glow-secondary: 0 0 20px hsl(270 80% 60% / 0.4);
-    --shadow-glow-success: 0 0 20px hsl(150 80% 45% / 0.4);
-    --shadow-glow-warning: 0 0 20px hsl(35 100% 55% / 0.4);
-    --shadow-glow-danger: 0 0 20px hsl(0 80% 55% / 0.4);
-    --shadow-card: 0 4px 24px hsl(230 25% 0% / 0.5);
+    --shadow-glow-sm: 0 2px 10px hsl(0 0% 0% / 0.35);
+    --shadow-glow-md: 0 10px 28px hsl(0 0% 0% / 0.42);
+    --shadow-glow-lg: 0 18px 50px hsl(0 0% 0% / 0.48);
+    --shadow-glow-secondary: 0 8px 24px hsl(0 0% 0% / 0.35);
+    --shadow-glow-success: 0 8px 24px hsl(142 30% 20% / 0.25);
+    --shadow-glow-warning: 0 8px 24px hsl(32 40% 25% / 0.25);
+    --shadow-glow-danger: 0 8px 24px hsl(0 40% 25% / 0.28);
+    --shadow-card: 0 1px 0 hsl(220 12% 22% / 0.9), 0 12px 36px hsl(0 0% 0% / 0.45);
 
-    /* Sidebar */
-    --sidebar-background: 230 25% 7%;
-    --sidebar-foreground: 200 20% 75%;
-    --sidebar-primary: 185 100% 50%;
-    --sidebar-primary-foreground: 230 25% 5%;
-    --sidebar-accent: 230 25% 12%;
-    --sidebar-accent-foreground: 200 20% 95%;
-    --sidebar-border: 230 20% 15%;
-    --sidebar-ring: 185 100% 50%;
+    --sidebar-background: 220 15% 10%;
+    --sidebar-foreground: 220 10% 72%;
+    --sidebar-primary: 156 38% 48%;
+    --sidebar-primary-foreground: 220 18% 8%;
+    --sidebar-accent: 220 12% 15%;
+    --sidebar-accent-foreground: 42 22% 95%;
+    --sidebar-border: 220 12% 17%;
+    --sidebar-ring: 156 38% 48%;
   }
 }
 
@@ -210,7 +186,8 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    font-feature-settings: "kern" 1, "liga" 1;
     background: var(--gradient-space);
     background-attachment: fixed;
     overflow-x: hidden;
@@ -256,26 +233,28 @@
 @layer components {
   /* Typography */
   .font-display {
-    font-family: 'Orbitron', sans-serif;
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+    font-variation-settings: "opsz" 24;
+    letter-spacing: -0.02em;
   }
 
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }
 
-  /* Glass Card */
+  /* Surfaces: paper-like, minimal blur */
   .glass-card {
     background: hsl(var(--glass-bg));
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
     border: 1px solid hsl(var(--glass-border));
-    box-shadow: 
+    box-shadow:
       inset 0 1px 0 hsl(var(--glass-highlight)),
       var(--shadow-card);
   }
 
   .glass-card-glow {
     @apply glass-card;
-    box-shadow: 
+    box-shadow:
       inset 0 1px 0 hsl(var(--glass-highlight)),
       var(--shadow-card),
       var(--shadow-glow-sm);
@@ -343,12 +322,12 @@
     animation: float 6s ease-in-out infinite;
   }
 
-  /* Grid Pattern */
+  /* Subtle ledger grid */
   .grid-pattern {
-    background-image: 
-      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
-    background-size: 40px 40px;
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.55) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.55) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
 
   /* Health Indicators */

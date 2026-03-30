@@ -55,6 +55,7 @@ import {
   getExpenseBudgetRequirementMessage,
   formatCurrency as formatBudgetCurrency,
 } from "@/lib/budget-alerts";
+import { normalizeMlCategoryForApp } from "@/lib/ml/mlCategory";
 
 const categoryIcons: Record<string, typeof Coffee> = {
   Rent: Home,
@@ -196,19 +197,14 @@ async function parseNaturalLanguage(input: string): Promise<(ParsedTransaction &
 
     if (aiResponse.ok) {
       const aiResult = await aiResponse.json();
-      let raw = aiResult.category;
-      if (raw === "Healthcare") raw = "Health";
-      if (raw === "Gifts & Donations") raw = "Gifts / Donations";
-      category = APP_CATEGORIES.includes(raw) ? raw : "Miscellaneous";
+      const raw = aiResult.category as string;
+      category = normalizeMlCategoryForApp(raw, APP_CATEGORIES);
       confidence = aiResult.confidence;
     }
   } catch (error) {
     console.error("Failed to fetch ML categorization:", error);
     const aiResult = aiService.categorizeTransaction(trimmed, amount || 1, undefined, type);
-    let raw = aiResult.category;
-    if (raw === "Healthcare") raw = "Health";
-    if (raw === "Gifts & Donations") raw = "Gifts / Donations";
-    category = APP_CATEGORIES.includes(raw) ? raw : "Miscellaneous";
+    category = normalizeMlCategoryForApp(aiResult.category, APP_CATEGORIES);
     confidence = aiResult.confidence;
   }
 
@@ -924,7 +920,7 @@ export default function Transactions() {
       let category = "Miscellaneous";
       if (aiResponse.ok) {
         const aiResult = await aiResponse.json();
-        category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+        category = normalizeMlCategoryForApp(aiResult.category as string, APP_CATEGORIES);
       } else {
         const aiResult = aiService.categorizeTransaction(
           editDraft.description,
@@ -932,7 +928,7 @@ export default function Transactions() {
           undefined,
           editDraft.type
         );
-        category = APP_CATEGORIES.includes(aiResult.category) ? aiResult.category : "Miscellaneous";
+        category = normalizeMlCategoryForApp(aiResult.category, APP_CATEGORIES);
       }
       setEditDraft((prev) => ({ ...prev, category }));
     } catch (error) {
@@ -1390,7 +1386,7 @@ export default function Transactions() {
                 });
 
                 const textToCategorize = parsed.rawText.trim() || parsed.extractedText.join(" ");
-                let category = "Other/Unknown";
+                let category = "Miscellaneous";
                 try {
                   const catRes = await fetch(`${import.meta.env.VITE_AI_API_URL ?? "http://127.0.0.1:5001"}/api/v1/categorize`, {
                     method: "POST",
@@ -1399,10 +1395,10 @@ export default function Transactions() {
                   });
                   if (catRes.ok) {
                     const data = await catRes.json();
-                    category = data.category ?? "Other/Unknown";
+                    category = normalizeMlCategoryForApp(data.category as string | undefined, APP_CATEGORIES);
                   }
                 } catch {
-                  category = "Other/Unknown";
+                  category = "Miscellaneous";
                 }
 
                 const merchant = parsed.structured?.merchant ?? parsed.extractedText[0];

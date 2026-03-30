@@ -5,6 +5,11 @@ import {
   retrieve,
   formatRetrievedContext,
 } from "./rag-retriever";
+import {
+  extractGeminiTextFromResponse,
+  getGeminiGenerateContentUrl,
+  GEMINI_THINKING_OFF,
+} from "./gemini-config";
 
 export interface CompanionGoal {
   name: string;
@@ -22,11 +27,9 @@ export interface CompanionContext {
 /* ───────── Gemini LLM Integration ───────── */
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-function buildFinancialSystemPrompt(ragContext?: string): string {
-  const insights = aiService.getDashboardInsights();
+async function buildFinancialSystemPrompt(ragContext?: string): Promise<string> {
+  const insights = await aiService.getDashboardInsightsAsync();
   const savingsRate = Math.max(0, insights.savingsRate);
 
   const top = insights.topCategories
@@ -34,11 +37,14 @@ function buildFinancialSystemPrompt(ragContext?: string): string {
     .map((c) => `${c.category}: ${c.amount.toLocaleString()} UGX (${c.percentage}%)`)
     .join(", ");
 
+  const modelBlock = insights.modelSignals ? "\n\n" + insights.modelSignals.summaryForPrompt : "";
+
   const base = [
     "You are a smart, friendly AI financial advisor named UniGuard embedded in a personal finance app for users based in Uganda.",
     "Always respond in 2–5 concise sentences unless the user asks for more detail.",
     "Use Ugandan Shilling (UGX) when mentioning money amounts.",
     "Do NOT make up data. Only reference the financial data provided below.",
+    "When MODEL-ASSISTED SIGNALS are present, you may briefly mention data quality (miscellaneous share) or unusual expenses (local checks plus trained RF when available) — and suggest reviewing Transactions if anomalies are flagged.",
     "",
     "=== USER FINANCIAL SNAPSHOT ===",
     `Total Income: ${insights.totalIncome.toLocaleString()} UGX`,
@@ -48,6 +54,7 @@ function buildFinancialSystemPrompt(ragContext?: string): string {
     `Transaction Count: ${insights.transactionCount}`,
     `Top Spending Categories: ${top || "none yet"}`,
     "=== END SNAPSHOT ===",
+    modelBlock,
   ].join("\n");
 
   if (ragContext) {
@@ -64,7 +71,7 @@ async function callGemini(
 
   // RAG: retrieve relevant context for the query
   const transactions = aiService.getTransactions();
-  const insights = aiService.getDashboardInsights();
+  const insights = await aiService.getDashboardInsightsAsync();
   const goals = context.goals ?? [];
   const docs = buildRAGDocuments(
     transactions.map((t) => ({
@@ -91,7 +98,7 @@ async function callGemini(
   const retrieved = retrieve(userMessage, docs, 5);
   const ragContext = formatRetrievedContext(retrieved);
 
-  const systemPrompt = buildFinancialSystemPrompt(ragContext);
+  const systemPrompt = await buildFinancialSystemPrompt(ragContext);
 
   // Add goal context if available
   let goalContext = "";
@@ -111,7 +118,7 @@ async function callGemini(
   const fullPrompt = systemPrompt + goalContext;
 
   try {
-    const res = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+    const res = await fetch(`${getGeminiGenerateContentUrl()}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -134,8 +141,9 @@ async function callGemini(
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 512,
+          maxOutputTokens: 2048,
           topP: 0.95,
+          thinkingConfig: GEMINI_THINKING_OFF,
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -150,9 +158,8 @@ async function callGemini(
     }
 
     const json = await res.json();
-    const text: string | undefined =
-      json?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return text?.trim() ?? null;
+    const text = extractGeminiTextFromResponse(json);
+    return text.length > 0 ? text : null;
   } catch (err) {
     console.warn("[Gemini] fetch failed", err);
     return null;

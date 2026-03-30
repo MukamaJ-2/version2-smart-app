@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Zap, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -101,8 +101,8 @@ export default function Sidebar() {
           className="flex items-center gap-3"
           animate={{ justifyContent: collapsed ? "center" : "flex-start" }}
         >
-          <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center shadow-glow-sm">
-            <Zap className="w-6 h-6 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-md border-2 border-primary/80 bg-card flex items-center justify-center shadow-sm">
+            <span className="font-display text-lg font-semibold text-primary leading-none">U</span>
           </div>
           {!collapsed && (
             <motion.div
@@ -112,7 +112,9 @@ export default function Sidebar() {
               className="flex flex-col"
             >
               <span className="font-display text-lg font-bold text-foreground">UniGuard Wallet</span>
-              <span className="text-[10px] text-primary font-mono uppercase tracking-wider">Personal finance</span>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.2em]">
+                Personal finance
+              </span>
             </motion.div>
           )}
         </motion.div>
@@ -135,9 +137,9 @@ export default function Sidebar() {
                 <Link key={item.path} to={item.path}>
                   <motion.div
                     className={cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative",
+                      "flex items-center gap-3 px-3 py-3 rounded-md transition-colors duration-150 group relative",
                       isActive
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-primary/[0.08] text-primary"
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
                     )}
                     whileHover={{ x: collapsed ? 0 : 4 }}
@@ -146,10 +148,10 @@ export default function Sidebar() {
                     {isActive && (
                       <motion.div
                         layoutId="activeNav"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-glow-sm"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-7 bg-primary rounded-r-sm"
                       />
                     )}
-                    <item.icon className={cn("w-5 h-5 shrink-0", isActive && "text-glow-sm")} />
+                    <item.icon className="w-5 h-5 shrink-0" strokeWidth={isActive ? 2.25 : 1.75} />
                     {!collapsed && (
                       <motion.span
                         initial={{ opacity: 0 }}
@@ -172,11 +174,11 @@ export default function Sidebar() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mx-3 mb-4 p-4 glass-card rounded-xl"
+          className="mx-3 mb-4 p-4 glass-card rounded-md border-border/80"
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Savings score</span>
-            <span className="font-mono text-lg font-bold text-success text-glow-sm">{healthScore}</span>
+            <span className="font-mono text-lg font-bold text-success tabular-nums">{healthScore}</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <motion.div

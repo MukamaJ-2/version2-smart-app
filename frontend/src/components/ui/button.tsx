@@ -9,14 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-glow-sm",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-glow-danger",
-        outline: "border border-border bg-transparent hover:bg-muted/30 hover:border-primary/50 hover:text-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-glow-secondary",
-        ghost: "hover:bg-muted/30 hover:text-foreground",
+        default:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/92 hover:-translate-y-px hover:shadow-md active:translate-y-0",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/92 hover:-translate-y-px hover:shadow-md active:translate-y-0",
+        outline: "border border-border bg-transparent hover:bg-muted/40 hover:border-primary/40 hover:text-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/88 hover:-translate-y-px hover:shadow-md active:translate-y-0",
+        ghost: "hover:bg-muted/40 hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        glow: "bg-gradient-primary text-primary-foreground shadow-glow-sm hover:shadow-glow-md",
-        success: "bg-success text-success-foreground hover:bg-success/90 hover:shadow-glow-success",
+        glow: "bg-gradient-primary text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-px",
+        success:
+          "bg-success text-success-foreground shadow-sm hover:bg-success/92 hover:-translate-y-px hover:shadow-md active:translate-y-0",
       },
       size: {
         default: "h-10 px-4 py-2",

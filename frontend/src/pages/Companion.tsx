@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Send, Mic, Sparkles, TrendingUp, Target, Zap, BarChart3, Lightbulb } from "lucide-react";
+import { Send, Mic, Sparkles, TrendingUp, Target, Zap, BarChart3, Lightbulb } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,8 @@ import { toast } from "@/hooks/use-toast";
 import { buildAiResponse, generateProactiveNudges, type CompanionGoal, type ProactiveNudge } from "@/lib/ai/companion";
 import { aiService } from "@/lib/ai/ai-service";
 import type { TrainingTransaction } from "@/lib/ai/training-data";
+import type { SmartMoneyTransactionInput } from "@/lib/smart-money";
+import SmartMoneyAgentPanel from "@/components/reports/SmartMoneyAgentPanel";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface Message {
@@ -54,26 +56,37 @@ export default function Companion() {
   const [isTyping, setIsTyping] = useState(false);
   const [goals, setGoals] = useState<CompanionGoal[]>([]);
   const [nudges, setNudges] = useState<ProactiveNudge[]>([]);
+  const [smartMoneyTransactions, setSmartMoneyTransactions] = useState<SmartMoneyTransactionInput[]>([]);
 
   useEffect(() => {
     let isActive = true;
     const loadData = async () => {
       if (!isSupabaseConfigured) {
         aiService.initialize([], 0);
+        setSmartMoneyTransactions([]);
         return;
       }
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (!isActive) return;
       if (userError || !userData.user) {
         aiService.initialize([], 0);
+        setSmartMoneyTransactions([]);
         return;
       }
       const { data: txData, error: txError } = await supabase
         .from("transactions")
-        .select("description,amount,category,type,date")
+        .select("id,description,amount,category,type,date,time")
         .eq("user_id", userData.user.id);
       if (!isActive) return;
-      const transactions: TrainingTransaction[] = txError ? [] : ((txData ?? []) as TrainingTransaction[]);
+      const rows = txError ? [] : (txData ?? []);
+      const transactions: TrainingTransaction[] = rows.map((r) => ({
+        description: r.description,
+        amount: r.amount,
+        category: r.category,
+        type: r.type,
+        date: r.date,
+      }));
+      setSmartMoneyTransactions(rows as SmartMoneyTransactionInput[]);
       const incomeTotal = transactions
         .filter((tx) => tx.type === "income")
         .reduce((sum, tx) => sum + tx.amount, 0);
@@ -214,7 +227,7 @@ export default function Companion() {
                 Money coach
               </h1>
               <p className="text-muted-foreground text-sm mt-1">
-                Ask questions about your money in everyday language
+                Chat below, or use Smart Money for structured totals and AI tips from your transactions
               </p>
             </div>
             <div className="flex items-center gap-2 glass-card px-4 py-2 rounded-xl">
@@ -250,6 +263,18 @@ export default function Companion() {
             );
           })}
         </motion.div>
+
+        {/* Smart Money (same data as chat context) */}
+        {smartMoneyTransactions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="mb-6"
+          >
+            <SmartMoneyAgentPanel transactions={smartMoneyTransactions} />
+          </motion.div>
+        )}
 
         {/* Proactive Nudges */}
         {nudges.length > 0 && (

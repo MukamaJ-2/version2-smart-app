@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
-  Zap,
+  Wallet,
   Mail,
   Lock,
   User,
@@ -225,15 +225,14 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl" />
-      </div>
-
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 grid-pattern opacity-20 pointer-events-none" />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.35]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(-12deg, transparent, transparent 52px, hsl(var(--border) / 0.45) 52px, hsl(var(--border) / 0.45) 53px)",
+        }}
+      />
+      <div className="absolute inset-0 grid-pattern opacity-[0.12] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -248,8 +247,8 @@ export default function Auth() {
           transition={{ delay: 0.2 }}
           className="text-center mb-8"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-primary shadow-glow-md mb-4">
-            <Zap className="w-10 h-10 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl border-2 border-primary/70 bg-card shadow-md mb-4">
+            <Wallet className="w-9 h-9 text-primary" strokeWidth={1.75} />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground mb-2">
             UniGuard Wallet
@@ -273,13 +272,10 @@ export default function Auth() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass-card-glow rounded-2xl p-8 border border-primary/20 relative overflow-hidden"
+          className="glass-card rounded-xl p-8 border border-border relative overflow-hidden shadow-card"
         >
-          {/* Scan line effect */}
-          <div className="absolute inset-0 scan-line pointer-events-none" />
-
           <Tabs value={isLogin ? "login" : "register"} onValueChange={(v) => setIsLogin(v === "login")} className="w-full">
-            <TabsList className="glass-card mb-6 w-full">
+            <TabsList className="glass-card mb-6 w-full rounded-md p-1">
               <TabsTrigger value="login" className="flex-1">Sign In</TabsTrigger>
               <TabsTrigger value="register" className="flex-1">Sign Up</TabsTrigger>
             </TabsList>
@@ -343,16 +339,13 @@ export default function Auth() {
                   </div>
                   <Link
                     to="/forgot-password"
-                    className="text-sm text-primary hover:text-primary-glow transition-colors"
+                    className="text-sm text-primary hover:underline underline-offset-4 transition-colors"
                   >
                     Forgot password?
                   </Link>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-primary hover:opacity-90 h-11 text-base font-semibold"
-                >
+                <Button type="submit" className="w-full h-11 text-base font-semibold" variant="glow">
                   Sign In
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -486,27 +479,24 @@ export default function Auth() {
                   />
                   <Label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                     I agree to the{" "}
-                    <Link to="/terms" className="text-primary hover:text-primary-glow">
+                    <Link to="/terms" className="text-primary hover:underline underline-offset-2">
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link to="/privacy" className="text-primary hover:text-primary-glow">
+                    <Link to="/privacy" className="text-primary hover:underline underline-offset-2">
                       Privacy Policy
                     </Link>
                   </Label>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-primary hover:opacity-90 h-11 text-base font-semibold"
-                >
+                <Button type="submit" className="w-full h-11 text-base font-semibold" variant="glow">
                   Create Account
                   <Sparkles className="w-4 h-4 ml-2" />
                 </Button>
               </form>
 
               {/* Security Features */}
-              <div className="mt-6 p-4 glass-card rounded-xl border border-primary/20">
+              <div className="mt-6 p-4 glass-card rounded-md border border-border">
                 <div className="flex items-center gap-2 mb-3">
                   <Shield className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">Security Features</span>
@@ -539,11 +529,11 @@ export default function Auth() {
         >
           <p>
             By continuing, you agree to UniGuard Wallet's{" "}
-            <Link to="/terms" className="text-primary hover:text-primary-glow">
+            <Link to="/terms" className="text-primary hover:underline underline-offset-2">
               Terms
             </Link>{" "}
             and{" "}
-            <Link to="/privacy" className="text-primary hover:text-primary-glow">
+            <Link to="/privacy" className="text-primary hover:underline underline-offset-2">
               Privacy Policy
             </Link>
           </p>

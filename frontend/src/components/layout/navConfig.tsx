@@ -11,6 +11,7 @@ import {
   Vault,
   TrendingUp,
   Medal,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { FEATURE_LABELS } from "@/lib/feature-labels";
@@ -44,6 +45,7 @@ export const navSections: NavSection[] = [
     label: FEATURE_LABELS.rewardsSection,
     items: [
       { icon: Trophy, label: "Achievements", path: "/achievements" },
+      { icon: Zap, label: "Weekly challenges", path: "/weekly-challenges" },
       { icon: Medal, label: "Leaderboard", path: "/leaderboard" },
     ],
   },

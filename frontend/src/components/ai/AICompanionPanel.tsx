@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, X, Send, Sparkles, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,9 @@ interface Message {
 const PANEL_STORAGE_KEY = "uniguard.companion.panel.messages";
 
 export default function AICompanionPanel() {
+  const { pathname } = useLocation();
+  /** Full Money coach page already provides chat + Smart Money; hide duplicate floating UI. */
+  const hideOnCoachPage = pathname === "/companion";
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window === "undefined") return [];
@@ -74,6 +78,8 @@ export default function AICompanionPanel() {
       setIsTyping(false);
     }, 1000);
   };
+
+  if (hideOnCoachPage) return null;
 
   return (
     <>

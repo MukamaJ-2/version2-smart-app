@@ -19,6 +19,8 @@ export default defineConfig({
       includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png", "og-image.png"],
       manifest: false, // use existing public/manifest.webmanifest
       workbox: {
+        // Main bundle can exceed Workbox default (2 MiB); still precache for offline shell
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/auth/],

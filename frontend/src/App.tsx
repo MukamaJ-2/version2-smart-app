@@ -12,6 +12,7 @@ import Companion from "./pages/Companion";
 import Reports from "./pages/Reports";
 import Achievements from "./pages/Achievements";
 import Leaderboard from "./pages/Leaderboard";
+import WeeklyChallenges from "./pages/WeeklyChallenges";
 import Settings from "./pages/Settings";
 import SavingsVault from "./pages/SavingsVault";
 import FamilyFinance from "./pages/FamilyFinance";
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/reports" element={<RequireOnboarding><Reports /></RequireOnboarding>} />
           <Route path="/achievements" element={<RequireOnboarding><Achievements /></RequireOnboarding>} />
           <Route path="/leaderboard" element={<RequireOnboarding><Leaderboard /></RequireOnboarding>} />
+          <Route path="/weekly-challenges" element={<RequireOnboarding><WeeklyChallenges /></RequireOnboarding>} />
           <Route path="/settings" element={<RequireOnboarding><Settings /></RequireOnboarding>} />
           <Route path="/savings-vault" element={<RequireOnboarding><SavingsVault /></RequireOnboarding>} />
           <Route path="/family-finance" element={<RequireOnboarding><FamilyFinance /></RequireOnboarding>} />

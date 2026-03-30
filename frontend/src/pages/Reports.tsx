@@ -400,7 +400,7 @@ export default function Reports() {
   // AI insights calculation using real data
   const calculateInsights = () => {
     setIsCalculating(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       const trainingData: TrainingTransaction[] = transactions.map((tx) => ({
         description: tx.description,
         amount: tx.amount,
@@ -414,15 +414,17 @@ export default function Reports() {
         .reduce((sum, tx) => sum + tx.amount, 0);
 
       aiService.initialize(trainingData, incomeTotal);
-      const fetchedInsights = aiService.getReportInsights();
-      setDynamicInsights(fetchedInsights);
-      setIsCalculating(false);
-
-      if (fetchedInsights.length > 0) {
-        toast({
-          title: "Highlights updated",
-          description: `Using ${transactions.length} transactions.`,
-        });
+      try {
+        const fetchedInsights = await aiService.getReportInsightsAsync();
+        setDynamicInsights(fetchedInsights);
+        if (fetchedInsights.length > 0) {
+          toast({
+            title: "Highlights updated",
+            description: `Using ${transactions.length} transactions.`,
+          });
+        }
+      } finally {
+        setIsCalculating(false);
       }
     }, 400);
   };

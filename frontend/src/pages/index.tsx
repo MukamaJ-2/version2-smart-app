@@ -16,6 +16,7 @@ import NotificationsPanel from "@/components/dashboard/NotificationsPanel";
 import AnomalySummaryCard from "@/components/dashboard/AnomalySummaryCard";
 import SpendingAlertsCard from "@/components/dashboard/SpendingAlertsCard";
 import BudgetOverAlertBanner from "@/components/dashboard/BudgetOverAlertBanner";
+import FeatureConnectionsStrip from "@/components/dashboard/FeatureConnectionsStrip";
 import { Button } from "@/components/ui/button";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { OnboardingAnswers } from "@/lib/onboarding";
@@ -103,9 +104,11 @@ export default function Index() {
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <div className="flex items-center gap-2 glass-card px-3 sm:px-4 py-2 rounded-xl min-h-[44px] sm:min-h-0">
-              <Activity className="w-4 h-4 text-success animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-mono text-foreground hidden sm:inline">Ready</span>
+            <div className="flex items-center gap-2 glass-card px-3 sm:px-4 py-2 rounded-md min-h-[44px] sm:min-h-0 border-border/80">
+              <Activity className="w-4 h-4 text-success shrink-0" strokeWidth={2} />
+              <span className="text-xs sm:text-sm font-medium text-muted-foreground hidden sm:inline tracking-wide">
+                Live
+              </span>
             </div>
           </div>
         </motion.header>
@@ -115,6 +118,9 @@ export default function Index() {
 
         {/* Quick Stats */}
         <QuickStats simulatedMonths={simulatedMonths} />
+
+        {/* One row: link core tools without duplicating the full sidebar */}
+        <FeatureConnectionsStrip />
 
         {/* Your profile summary (from onboarding) */}
         {answers && (lifeStageLabel || savingsGoalLabel || alertLabel || essentialCount > 0) && (

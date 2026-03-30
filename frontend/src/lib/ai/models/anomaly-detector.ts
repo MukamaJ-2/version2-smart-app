@@ -408,7 +408,7 @@ function buildInsightMessage(
 }
 
 /** Compute amount_ratio = amount / median(amounts for same category, type) */
-function getAmountRatio(
+export function getAmountRatio(
   amount: number,
   category: string,
   txType: string,
