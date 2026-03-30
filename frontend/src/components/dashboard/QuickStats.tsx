@@ -41,6 +41,11 @@ const colorClasses = {
     text: "text-secondary",
     glow: "shadow-glow-secondary",
   },
+  destructive: {
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    glow: "shadow-glow-sm",
+  },
 };
 
 export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: number }) {
@@ -171,14 +176,20 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
       daysToDeadline = Math.max(0, daysToDeadline - (simulatedMonths * 30));
     }
 
+    const balanceDisplay = new Intl.NumberFormat("en-UG", {
+      style: "currency",
+      currency: "UGX",
+      maximumFractionDigits: 0,
+    }).format(Math.abs(displayBalance));
+
     return [
       {
         label: simulatedMonths > 0 ? `Balance in +${simulatedMonths} mo (guess)` : "Your balance",
-        value: new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(displayBalance),
+        value: balanceDisplay,
         change: income > 0 ? `+${new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(income)}` : "No income yet",
         isPositive: income > 0 ? displayBalance >= 0 : null,
         icon: Wallet,
-        color: simulatedMonths > 0 && displayBalance < balance ? "secondary" : "primary",
+        color: simulatedMonths > 0 && displayBalance < balance ? "secondary" : "destructive",
         link: "/transactions",
       },
       {

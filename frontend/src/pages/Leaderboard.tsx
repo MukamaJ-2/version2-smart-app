@@ -11,6 +11,9 @@ interface LeaderboardEntry {
   total_income: number;
   total_expenses: number;
   savings_rate: number;
+  budget_adherence: number | null;
+  budget_pods_count: number;
+  leaderboard_score: number;
 }
 
 const rankIcons: Record<number, typeof Trophy> = {
@@ -42,8 +45,10 @@ export default function Leaderboard() {
 
       const { data, error: viewError } = await supabase
         .from("savings_rates_anonymous")
-        .select("user_id, total_income, total_expenses, savings_rate")
-        .order("savings_rate", { ascending: false })
+        .select(
+          "user_id, total_income, total_expenses, savings_rate, budget_adherence, budget_pods_count, leaderboard_score"
+        )
+        .order("leaderboard_score", { ascending: false })
         .limit(20);
       if (!isActive) return;
       if (viewError) {
@@ -52,17 +57,17 @@ export default function Leaderboard() {
       } else {
         const raw = (data ?? []) as LeaderboardEntry[];
         const privatized = raw.map((e) => {
-          const p = privatizeLeaderboardEntry(
-            e.total_income,
-            e.total_expenses,
-            e.savings_rate,
-            0.5
-          );
+          const p = privatizeLeaderboardEntry(e.total_income, e.total_expenses, e.savings_rate, 0.5, {
+            budgetAdherence: e.budget_adherence,
+            leaderboardScore: e.leaderboard_score,
+          });
           return {
             ...e,
             total_income: p.totalIncome,
             total_expenses: p.totalExpenses,
             savings_rate: p.savingsRate,
+            budget_adherence: p.budgetAdherence,
+            leaderboard_score: p.leaderboardScore,
           };
         });
         setEntries(privatized);
@@ -97,7 +102,7 @@ export default function Leaderboard() {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
-            <span>Ranked by savings rate (anonymous)</span>
+            <span>Ranked by score: savings + budget discipline (anonymous)</span>
             <span className="flex items-center gap-1 text-xs" title="Differential privacy: values are slightly perturbed to protect individual privacy">
               <Shield className="w-3.5 h-3.5" />
               DP
@@ -136,7 +141,8 @@ export default function Leaderboard() {
               No rankings yet
             </h2>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              Add income and expense transactions to appear on the savings rate leaderboard.
+              Add income and expense transactions to appear on the leaderboard. Set budget ports to factor in
+              staying within limits.
             </p>
           </motion.div>
         )}
@@ -152,7 +158,11 @@ export default function Leaderboard() {
               const rank = index + 1;
               const isCurrentUser = entry.user_id === currentUserId;
               const RankIcon = rankIcons[rank];
+              const scorePct = Math.round(entry.leaderboard_score * 100);
               const savingsRatePct = Math.round(entry.savings_rate * 100);
+              const hasBudgetScore =
+                entry.budget_adherence != null && entry.budget_pods_count > 0;
+              const budgetPct = hasBudgetScore ? Math.round((entry.budget_adherence ?? 0) * 100) : null;
               return (
                 <motion.div
                   key={entry.user_id}
@@ -198,13 +208,22 @@ export default function Leaderboard() {
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
                       <span>Income: {entry.total_income.toLocaleString()} UGX</span>
                       <span>Expenses: {entry.total_expenses.toLocaleString()} UGX</span>
+                      {hasBudgetScore && (
+                        <span>
+                          On-budget: {budgetPct}% ({entry.budget_pods_count} port
+                          {entry.budget_pods_count === 1 ? "" : "s"})
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Savings rate */}
-                  <div className="text-right shrink-0">
-                    <div className="font-mono font-bold text-success">{savingsRatePct}%</div>
-                    <div className="text-xs text-muted-foreground">savings rate</div>
+                  {/* Composite score + savings */}
+                  <div className="text-right shrink-0 space-y-0.5">
+                    <div className="font-mono font-bold text-success">{scorePct}%</div>
+                    <div className="text-xs text-muted-foreground">score</div>
+                    <div className="font-mono text-xs text-muted-foreground">
+                      save {savingsRatePct}%
+                    </div>
                   </div>
                 </motion.div>
               );

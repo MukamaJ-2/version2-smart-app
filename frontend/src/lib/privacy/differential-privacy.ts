@@ -25,6 +25,8 @@ export function addLaplaceNoise(value: number, sensitivity: number, epsilon = 0.
   return value + sampleLaplace(scale);
 }
 
+const rateSensitivity = 0.1;
+
 /**
  * Apply DP to leaderboard entry - rounds to reasonable precision
  */
@@ -32,15 +34,34 @@ export function privatizeLeaderboardEntry(
   totalIncome: number,
   totalExpenses: number,
   savingsRate: number,
-  epsilon = 0.5
-): { totalIncome: number; totalExpenses: number; savingsRate: number } {
+  epsilon = 0.5,
+  options?: {
+    budgetAdherence?: number | null;
+    leaderboardScore?: number;
+  }
+): {
+  totalIncome: number;
+  totalExpenses: number;
+  savingsRate: number;
+  budgetAdherence: number | null;
+  leaderboardScore: number;
+} {
   const incomeSensitivity = Math.max(totalIncome * 0.1, 100000);
   const expenseSensitivity = Math.max(totalExpenses * 0.1, 100000);
-  const rateSensitivity = 0.1;
+  const rawScore = options?.leaderboardScore ?? savingsRate;
+
+  const noisySavings = Math.max(0, Math.min(1, addLaplaceNoise(savingsRate, rateSensitivity, epsilon)));
+  const noisyScore = Math.max(0, Math.min(1, addLaplaceNoise(rawScore, rateSensitivity, epsilon)));
+  const noisyBudget =
+    options?.budgetAdherence != null && !Number.isNaN(options.budgetAdherence)
+      ? Math.max(0, Math.min(1, addLaplaceNoise(options.budgetAdherence, rateSensitivity, epsilon)))
+      : null;
 
   return {
     totalIncome: Math.round(Math.max(0, addLaplaceNoise(totalIncome, incomeSensitivity, epsilon) / 10000) * 10000),
     totalExpenses: Math.round(Math.max(0, addLaplaceNoise(totalExpenses, expenseSensitivity, epsilon) / 10000) * 10000),
-    savingsRate: Math.max(0, Math.min(1, addLaplaceNoise(savingsRate, rateSensitivity, epsilon))),
+    savingsRate: noisySavings,
+    budgetAdherence: noisyBudget,
+    leaderboardScore: noisyScore,
   };
 }
