@@ -13,7 +13,12 @@ import requests
 app = Flask(__name__)
 CORS(app)
 
-DOCTR_API_URL = os.environ.get("DOCTR_API_URL", "http://127.0.0.1:8000").rstrip("/")
+def _doctr_api_base():
+    """DocTR OCR service URL, or None to skip DocTR (use Tesseract only — typical on Railway)."""
+    raw = os.environ.get("DOCTR_API_URL", "").strip()
+    return raw.rstrip("/") if raw else None
+
+
 NOTIFY_URL = os.environ.get("NOTIFY_URL", "http://127.0.0.1:5174/api/notifications")
 
 
@@ -382,7 +387,7 @@ def health_check():
         "status": "ok",
         "model_loaded": model is not None and model is not False,
         "anomaly_model_loaded": anomaly_model is not None and anomaly_model is not False,
-        "doctr_api_url": DOCTR_API_URL,
+        "doctr_api_url": _doctr_api_base() or "disabled (Tesseract OCR)",
     })
 
 
@@ -495,10 +500,10 @@ def _extract_raw_text_from_doctr(ocr_result):
     }
 
 
-def _extract_receipt_doctr(file_data: bytes, filename: str, content_type: str) -> dict:
+def _extract_receipt_doctr(file_data: bytes, filename: str, content_type: str, doctr_base: str) -> dict:
     """Call DocTR API and parse receipt."""
     resp = requests.post(
-        f"{DOCTR_API_URL}/ocr/",
+        f"{doctr_base}/ocr/",
         params={"det_arch": "db_resnet50", "reco_arch": "crnn_vgg16_bn"},
         files=[("files", (filename or "receipt.jpg", file_data, content_type or "image/jpeg"))],
         timeout=60,
@@ -511,13 +516,16 @@ def _extract_receipt_doctr(file_data: bytes, filename: str, content_type: str) -
 
 
 def _extract_receipt_tesseract(file_data: bytes) -> dict:
-    """Fallback OCR using Tesseract when DocTR API is unavailable."""
+    """OCR using Tesseract (primary on Railway when DocTR is not deployed)."""
     try:
         import pytesseract
         from PIL import Image
         import io
+        import shutil
     except ImportError:
         raise RuntimeError("pytesseract and Pillow required for fallback OCR. Install: pip install pytesseract Pillow")
+    tess = shutil.which("tesseract") or "/usr/bin/tesseract"
+    pytesseract.pytesseract.tesseract_cmd = tess
     img = Image.open(io.BytesIO(file_data))
     if img.mode != "RGB":
         img = img.convert("RGB")
@@ -549,32 +557,31 @@ def scan_receipt():
     filename = file.filename or "receipt.jpg"
     content_type = file.content_type or "image/jpeg"
 
-    # Try DocTR API first
+    doctr_base = _doctr_api_base()
+    if doctr_base:
+        try:
+            print("Extracting receipt info using DocTR OCR...")
+            response_data = _extract_receipt_doctr(file_data, filename, content_type, doctr_base)
+            return jsonify(response_data)
+        except Exception as e:
+            print(f"DocTR failed ({type(e).__name__}: {e}), using Tesseract...")
+
     try:
-        print("Extracting receipt info using DocTR OCR...")
-        response_data = _extract_receipt_doctr(file_data, filename, content_type)
+        print("Extracting receipt info using Tesseract OCR...")
+        response_data = _extract_receipt_tesseract(file_data)
         return jsonify(response_data)
     except Exception as e:
-        err_str = str(e).lower()
-        is_connection_error = (
-            isinstance(e, (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout, requests.exceptions.RequestException))
-            or "connection refused" in err_str
-            or "max retries" in err_str
-            or "connection" in err_str
-        )
-        if is_connection_error:
-            print(f"DocTR OCR unavailable ({type(e).__name__}), trying Tesseract fallback...")
-            try:
-                response_data = _extract_receipt_tesseract(file_data)
-                return jsonify(response_data)
-            except Exception as fallback_err:
-                print(f"Tesseract fallback failed: {fallback_err}")
-                return jsonify({
-                    "error": "Receipt OCR failed. DocTR is not running. Either: (1) Start DocTR: cd backend/doctr-main && uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir api. Or (2) Install Tesseract for fallback: sudo apt install tesseract-ocr && pip install pytesseract Pillow"
-                }), 503
         import traceback
+
         traceback.print_exc()
-        return jsonify({"error": f"Failed to parse receipt: {str(e)}"}), 500
+        return jsonify(
+            {
+                "error": (
+                    "Receipt OCR failed. The API image includes Tesseract; locally install tesseract-ocr "
+                    "or set DOCTR_API_URL to a running DocTR service."
+                )
+            }
+        ), 503
 
 
 if __name__ == "__main__":
