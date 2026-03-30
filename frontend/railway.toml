@@ -4,7 +4,8 @@
 
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci && npm run build"
+# Install phase already runs `npm ci`; only compile here (avoids duplicate npm ci).
+buildCommand = "npm run build"
 
 [deploy]
 startCommand = "npm run start"
@@ -13,6 +14,6 @@ healthcheckTimeout = 100
 
 # Manual setup (same as this file) if you cannot find "Config file" in the UI:
 #   Source → Root Directory: frontend
-#   Build → Build command: npm ci && npm run build
+#   Build → Build command: npm run build  (after Nixpacks install)
 #   Deploy → Start command: npm run start
 # Variables → add VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_AI_API_URL (enable for build if offered)
