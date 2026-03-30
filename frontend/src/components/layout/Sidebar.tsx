@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { navSections } from "./navConfig";
+import { UniGuardMark } from "@/components/brand/UniGuardMark";
+import { BRAND_NAME } from "@/lib/brand";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -101,17 +103,17 @@ export default function Sidebar() {
           className="flex items-center gap-3"
           animate={{ justifyContent: collapsed ? "center" : "flex-start" }}
         >
-          <div className="w-10 h-10 rounded-md border-2 border-primary/80 bg-card flex items-center justify-center shadow-sm">
-            <span className="font-display text-lg font-semibold text-primary leading-none">U</span>
+          <div className="w-10 h-10 rounded-md border border-primary/40 bg-card flex items-center justify-center shadow-sm overflow-hidden">
+            <UniGuardMark size={34} className="scale-[1.02]" />
           </div>
           {!collapsed && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col"
+              className="flex flex-col min-w-0"
             >
-              <span className="font-display text-lg font-bold text-foreground">UniGuard Wallet</span>
+              <span className="font-display text-lg font-bold text-foreground leading-tight truncate">{BRAND_NAME}</span>
               <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.2em]">
                 Personal finance
               </span>

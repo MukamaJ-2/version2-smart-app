@@ -189,7 +189,7 @@ def detect_anomaly():
             body = "\n".join(lines)
             _send_notification_email(
                 notify_email,
-                "UniGuard Alert: Unusual transaction" + ratio_msg,
+                "UniGuard X-T Alert: Unusual transaction" + ratio_msg,
                 body,
             )
 
@@ -273,7 +273,7 @@ def notify_test():
     if not email:
         return jsonify({"error": "Missing 'email' in request body"}), 400
 
-    title = "Your UniGuard daily finance snapshot"
+    title = "Your UniGuard X-T daily finance snapshot"
     lines = [
         title,
         "",
@@ -292,7 +292,7 @@ def notify_test():
         "",
         "You are doing well. Small consistent decisions are what compound into real wealth.",
         "",
-        "— UniGuard Wallet",
+        "— UniGuard X-T",
     ]
     body = "\n".join(lines)
 
@@ -307,7 +307,7 @@ def notify_test():
 
     _send_notification_email(
         email,
-        "UniGuard Insight: Your daily finance snapshot",
+        "UniGuard X-T Insight: Your daily finance snapshot",
         body,
     )
 
@@ -316,6 +316,70 @@ def notify_test():
 
 def _get_categorizer():
     return model if model and model is not False else None
+
+
+def _uganda_local_category_hint(text: str):
+    """
+    Map common Uganda merchant / description terms to CSV-style labels before sklearn.
+    Longer / more specific substrings are checked first.
+    """
+    if not text or not isinstance(text, str):
+        return None
+    t = text.lower()
+    hints = [
+        ("uber eats", "Dining & Drinks"),
+        ("special hire", "Transport"),
+        ("safeboda", "Transport"),
+        ("safe boda", "Transport"),
+        ("bodaboda", "Transport"),
+        ("boda boda", "Transport"),
+        ("little taxi", "Transport"),
+        ("little cab", "Transport"),
+        ("in driver", "Transport"),
+        ("in-driver", "Transport"),
+        ("yaka token", "Utilities"),
+        ("electricity token", "Utilities"),
+        ("power token", "Utilities"),
+        ("prepaid electricity", "Utilities"),
+        ("national water", "Utilities"),
+        ("water bill", "Utilities"),
+        ("electricity bill", "Utilities"),
+        ("data bundle", "Airtime & Data"),
+        ("voice bundle", "Airtime & Data"),
+        ("mtn data", "Airtime & Data"),
+        ("airtel data", "Airtime & Data"),
+        ("freedom bundle", "Airtime & Data"),
+        ("kikuubo", "Food & Groceries"),
+        ("nakasero", "Food & Groceries"),
+        ("st balikuddembe", "Food & Groceries"),
+        ("owino market", "Food & Groceries"),
+        ("owino", "Food & Groceries"),
+        ("food city", "Food & Groceries"),
+        ("quality supermarket", "Food & Groceries"),
+        ("carrefour", "Food & Groceries"),
+        ("rolex", "Dining & Drinks"),
+        ("chapati", "Dining & Drinks"),
+        ("taxify", "Transport"),
+        ("bolt", "Transport"),
+        ("uber", "Transport"),
+        ("taxi", "Transport"),
+        ("matatu", "Transport"),
+        ("farasi", "Transport"),
+        ("pioneer bus", "Transport"),
+        ("pioneer", "Transport"),
+        ("boda", "Transport"),
+        ("yaka", "Utilities"),
+        ("umeme", "Utilities"),
+        ("nwsc", "Utilities"),
+        ("sts token", "Utilities"),
+        ("airtime", "Airtime & Data"),
+        ("smile telecom", "Airtime & Data"),
+        ("roke telkom", "Airtime & Data"),
+    ]
+    for sub, cat in hints:
+        if sub in t:
+            return cat
+    return None
 
 
 @app.route("/api/v1/categorize", methods=["POST"])
@@ -330,7 +394,15 @@ def categorize():
         return jsonify({"error": "Missing 'text' in request body"}), 400
 
     text = data.get("text", "")
-    
+
+    hint = _uganda_local_category_hint(text)
+    if hint:
+        return jsonify({
+            "category": hint,
+            "confidence": 0.92,
+            "alternatives": [],
+        })
+
     # Apply cleaning function used at training
     cleaned_input = clean_text(text)
     
@@ -371,7 +443,7 @@ def categorize():
 def root():
     """Avoid 404 when opening the Railway/public URL in a browser; this service is API-only."""
     return jsonify({
-        "service": "UniGuard AI backend",
+        "service": "UniGuard X-T API",
         "status": "ok",
         "endpoints": {
             "health": "/health",

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
-  Wallet,
   Mail,
   Lock,
   User,
@@ -24,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { setUserEmail } from "@/lib/notifications";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { isValidEmail, normalizeEmail } from "@/lib/auth/email";
+import { UniGuardMark } from "@/components/brand/UniGuardMark";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 
 /** Where Supabase sends users after email confirmation — must match an entry in Supabase → Auth → Redirect URLs. */
 function emailRedirectAuthUrl(): string | undefined {
@@ -319,7 +320,7 @@ export default function Auth() {
     if (data.session) {
       toast({
         title: "Account created!",
-        description: "Welcome to UniGuard Wallet. Complete a short survey to personalize your experience.",
+        description: `Welcome to ${BRAND_NAME}. Complete a short survey to personalize your experience.`,
       });
       setTimeout(() => {
         navigate("/onboarding");
@@ -356,15 +357,11 @@ export default function Auth() {
           transition={{ delay: 0.2 }}
           className="text-center mb-8"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl border-2 border-primary/70 bg-card shadow-md mb-4">
-            <Wallet className="w-9 h-9 text-primary" strokeWidth={1.75} />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-xl border-2 border-primary/70 bg-card shadow-md mb-4 p-2">
+            <UniGuardMark size={56} />
           </div>
-          <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-            UniGuard Wallet
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Your money, organized and private
-          </p>
+          <h1 className="font-display text-3xl font-bold text-foreground mb-2">{BRAND_NAME}</h1>
+          <p className="text-muted-foreground text-sm">{BRAND_TAGLINE}</p>
         </motion.div>
 
         {!isSupabaseConfigured && (
@@ -637,7 +634,7 @@ export default function Auth() {
           className="text-center mt-6 text-sm text-muted-foreground"
         >
           <p>
-            By continuing, you agree to UniGuard Wallet's{" "}
+            By continuing, you agree to {`${BRAND_NAME}'s`}{" "}
             <Link to="/terms" className="text-primary hover:underline underline-offset-2">
               Terms
             </Link>{" "}

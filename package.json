@@ -1,5 +1,5 @@
 {
-  "name": "uniguard-wallet-root",
+  "name": "uniguard-xt-root",
   "private": true,
   "description": "Run dev/build from project root; app lives in frontend/",
   "scripts": {

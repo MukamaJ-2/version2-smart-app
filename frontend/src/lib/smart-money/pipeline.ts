@@ -74,7 +74,7 @@ export function generateBaselineReport(
   monthlyBudgetUgx: number | null | undefined
 ): string {
   const lines: string[] = [];
-  lines.push("UniGuard Smart Money — summary");
+  lines.push("UniGuard X-T Smart Money — summary");
   lines.push(`- Total expenses (all loaded data): ${formatUgx(insights.totalSpend)}`);
   lines.push("- Top categories:");
   const top = Object.entries(insights.spendByCategory)

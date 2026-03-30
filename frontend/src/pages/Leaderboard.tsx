@@ -97,7 +97,7 @@ export default function Leaderboard() {
               Leaderboard
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              See how you rank among fellow UniGuard users
+              See how you rank among fellow UniGuard X-T users
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

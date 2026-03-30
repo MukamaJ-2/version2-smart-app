@@ -469,7 +469,7 @@ export default function Reports() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `uniguard-wallet-report-${timeRange}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `uniguard-xt-report-${timeRange}-${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
@@ -530,7 +530,7 @@ export default function Reports() {
       y += 6;
     };
 
-    addTitle("UniGuard Financial Report", 20);
+    addTitle("UniGuard X-T Financial Report", 20);
     addText(`Generated: ${new Date().toLocaleDateString("en-UG", { dateStyle: "full" })}`);
     addText(`Period: ${timeRange}`);
     y += 4;
@@ -573,7 +573,7 @@ export default function Reports() {
       [60, 40, 20, 45]
     );
 
-    doc.save(`uniguard-financial-report-${timeRange}-${new Date().toISOString().split("T")[0]}.pdf`);
+    doc.save(`uniguard-xt-financial-report-${timeRange}-${new Date().toISOString().split("T")[0]}.pdf`);
 
     toast({
       title: "PDF exported",

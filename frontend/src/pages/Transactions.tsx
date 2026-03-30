@@ -716,7 +716,7 @@ export default function Transactions() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   to,
-                  subject: "UniGuard Wallet: unusual spending flagged",
+                  subject: "UniGuard X-T: unusual spending flagged",
                   text: result.reason,
                 }),
               })
