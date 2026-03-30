@@ -1,0 +1,18 @@
+# =============================================================================
+# UniGuard — API service (Flask + Gunicorn, repo-root Dockerfile)
+# =============================================================================
+# Railway: create a service from this repo, then:
+#   Settings → Root directory: leave empty (monorepo root)
+#   Settings → Config file: leave default, OR set /railway/api.toml
+#   (Root railway.toml mirrors this [build]/[deploy] for auto-discovery.)
+#
+# Public URL is your ML/backend only. The SPA is railway/web.toml + Root: frontend.
+# =============================================================================
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 100

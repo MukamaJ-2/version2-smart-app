@@ -1,9 +1,0 @@
-# Web service: set Railway service root directory to `frontend`, or set config path to `/frontend/railway.toml`.
-
-[build]
-builder = "NIXPACKS"
-
-[deploy]
-startCommand = "npm run start"
-healthcheckPath = "/"
-healthcheckTimeout = 100

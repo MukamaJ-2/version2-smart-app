@@ -1,5 +1,4 @@
-# API service: use with repo root as service root (not `backend/`).
-# Start command comes from Dockerfile (gunicorn). Web app: use /frontend/railway.toml (set in service settings).
+# API (Docker) — full notes: railway/api.toml. Duplicated here so Railway can auto-detect config at repo root.
 
 [build]
 builder = "DOCKERFILE"
