@@ -1,19 +1,36 @@
 #!/usr/bin/env node
 /**
- * Serves `dist/` on Railway's PORT (or 4173 locally). Avoids npm/sh quirks with ${PORT} in package.json.
+ * Serves `dist/` on Railway: binds 0.0.0.0:$PORT (Express 5 — no wildcard `*` route).
  */
-import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import express from "express";
+import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const port = process.env.PORT || "4173";
-const cwd = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const main = path.join(cwd, "node_modules/serve/build/main.js");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, "..");
+const dist = path.join(root, "dist");
+const indexHtml = path.join(dist, "index.html");
 
-const child = spawn(
-  process.execPath,
-  [main, "-s", "dist", "-l", `tcp://0.0.0.0:${port}`],
-  { stdio: "inherit", cwd, env: process.env }
-);
+if (!fs.existsSync(indexHtml)) {
+  console.error(`FATAL: ${indexHtml} missing — run "npm run build" before deploy.`);
+  process.exit(1);
+}
 
-child.on("exit", (code) => process.exit(code ?? 0));
+const port = Number.parseInt(process.env.PORT || "4173", 10);
+const app = express();
+
+app.disable("x-powered-by");
+app.get("/health", (_req, res) => res.status(200).type("text/plain").send("ok"));
+app.use(express.static(dist));
+app.use((req, res) => {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.status(405).end();
+    return;
+  }
+  res.sendFile(indexHtml);
+});
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Listening on 0.0.0.0:${port}`);
+});
