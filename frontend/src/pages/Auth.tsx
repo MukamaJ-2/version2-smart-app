@@ -250,9 +250,14 @@ export default function Auth() {
         : undefined,
     });
     if (error) {
+      const msg = error.message.toLowerCase();
+      const isRateLimit =
+        msg.includes("rate limit") || msg.includes("too many") || msg.includes("email rate");
       toast({
-        title: "Registration failed",
-        description: error.message,
+        title: isRateLimit ? "Too many emails sent" : "Registration failed",
+        description: isRateLimit
+          ? "Supabase limits how many confirmation emails can be sent per hour. Wait a bit, try again later, or add custom SMTP in Supabase → Authentication → SMTP."
+          : error.message,
         variant: "destructive",
       });
       return;
