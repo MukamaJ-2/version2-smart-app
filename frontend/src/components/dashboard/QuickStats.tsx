@@ -175,46 +175,50 @@ export default function QuickStats({ simulatedMonths = 0 }: { simulatedMonths?: 
       ? Math.max(0, Math.ceil((nextDeadline.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
       : 0;
 
-    let displayBalance = balance;
     let displayHealthScore = healthScore;
     let displayOnTrackRatio = onTrackRatio;
 
     if (simulatedMonths > 0) {
-      // Basic simulation mapping
-      const simulatedState = aiService.simulateFutureState(
+      // Basic simulation mapping (first card shows total expense; health/goals use projection)
+      aiService.simulateFutureState(
         simulatedMonths,
         [], // we don't need pods for quick stats currently
         goals.map((g) => ({ ...g, targetAmount: 0, currentAmount: 0, monthlyContribution: 0 })), // mock for now, we just need net worth generally
         balance
       );
-      displayBalance = simulatedState.projectedNetWorth;
-      // If balance is going up, health is good.
       displayHealthScore = Math.min(100, healthScore + simulatedMonths * 2);
       displayOnTrackRatio = Math.min(100, onTrackRatio + simulatedMonths * 5);
       daysToDeadline = Math.max(0, daysToDeadline - simulatedMonths * 30);
     }
 
-    const balanceDisplay = new Intl.NumberFormat("en-UG", {
+    const expenseDisplay = new Intl.NumberFormat("en-UG", {
       style: "currency",
       currency: "UGX",
       maximumFractionDigits: 0,
-    }).format(Math.abs(displayBalance));
+    }).format(expense);
 
-    const balanceLabel =
+    const expenseLabel =
       simulatedMonths > 0
-        ? `Balance in +${simulatedMonths} mo (guess)`
+        ? `Total expense (+${simulatedMonths} mo view)`
         : simulatedMonths < 0
-          ? "Balance (through then)"
-          : "Your balance";
+          ? "Total expense (through then)"
+          : "Total expense";
+
+    const withinMeans = income > 0 && expense <= income;
 
     return [
       {
-        label: balanceLabel,
-        value: balanceDisplay,
-        change: income > 0 ? `+${new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX", maximumFractionDigits: 0 }).format(income)}` : "No income yet",
-        isPositive: income > 0 ? displayBalance >= 0 : null,
+        label: expenseLabel,
+        value: expenseDisplay,
+        change:
+          income > 0
+            ? `${Math.min(100, Math.round((expense / income) * 100))}% of income`
+            : expense > 0
+              ? "No income logged"
+              : "No expenses yet",
+        isPositive: income > 0 ? withinMeans : expense === 0 ? true : null,
         icon: Wallet,
-        color: simulatedMonths > 0 && displayBalance < balance ? "secondary" : "destructive",
+        color: income > 0 && !withinMeans ? "destructive" : expense > 0 ? "destructive" : "secondary",
         link: "/transactions",
       },
       {
