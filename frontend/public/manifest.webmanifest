@@ -1,6 +1,6 @@
 {
-  "name": "UniGuard X-T",
-  "short_name": "UniGuard X-T",
+  "name": "UniGuard Expense Tracker",
+  "short_name": "UniGuard Expense Tracker",
   "description": "Track spending, budgets, and goals with clear summaries and a simple money coach.",
   "start_url": "/dashboard",
   "display": "standalone",

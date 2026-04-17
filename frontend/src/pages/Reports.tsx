@@ -530,7 +530,7 @@ export default function Reports() {
       y += 6;
     };
 
-    addTitle("UniGuard X-T Financial Report", 20);
+    addTitle("UniGuard Expense Tracker Financial Report", 20);
     addText(`Generated: ${new Date().toLocaleDateString("en-UG", { dateStyle: "full" })}`);
     addText(`Period: ${timeRange}`);
     y += 4;

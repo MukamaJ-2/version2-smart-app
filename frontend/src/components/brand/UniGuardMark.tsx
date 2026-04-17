@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * Official UniGuard X-T logo (shield + growth arrow) — asset in `/public/logo.png`.
+ * Official UniGuard Expense Tracker logo (shield + growth arrow) — asset in `/public/logo.png`.
  */
 export function UniGuardMark({ size = 40, className }: Props) {
   return (

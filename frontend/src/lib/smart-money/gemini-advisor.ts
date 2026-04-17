@@ -29,7 +29,7 @@ export async function fetchSmartMoneyAdvice(
       ? `Stated monthly budget: ${monthlyBudgetUgx.toLocaleString()} UGX.`
       : "No monthly budget was provided.";
 
-  const prompt = `You are UniGuard X-T's personal finance assistant for users in Uganda.
+  const prompt = `You are UniGuard Expense Tracker's personal finance assistant for users in Uganda.
 Use Ugandan Shilling (UGX) only. Do not invent transactions or amounts.
 
 OUTPUT RULES (required):

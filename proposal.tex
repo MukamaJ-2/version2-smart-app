@@ -1,0 +1,252 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{parskip}
+\usepackage{natbib}
+\usepackage{authblk}
+\usepackage{tocloft}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+
+% === STRONGER, BOLDER BLUE (Professional Deep Blue) ===
+\definecolor{deepucublue}{RGB}{0, 0, 153}   % Rich, bold, and very professional blue
+
+% === Section Formatting – Bold & Deep Blue ===
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{deepucublue}}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{deepucublue}}
+  {\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{deepucublue}}
+  {\thesubsubsection}{1em}{}
+
+% === Header/Footer ===
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\thepage}
+\lhead{\bfseries UniGuard Wallet – Final Year Project Proposal}
+\renewcommand{\headrulewidth}{0.8pt}
+\renewcommand{\headrule}{\color{deepucublue}\hrule width\headwidth height\headrulewidth \vskip-\headrulewidth}
+
+% TOC dots for sections/subsections
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
+
+% Hyperref last
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=deepucublue,
+    citecolor=deepucublue,
+    urlcolor=deepucublue
+}
+
+% === TITLE PAGE – LOGO ON TOP ===
+\title{\vspace{-2cm}\LARGE\bfseries UniGuard Wallet:\\[0.3cm]
+       AI-Driven Personal Budgeting and Financial Literacy Enhancement\\[0.3cm]
+       for University Students in Uganda}
+
+\author[1]{Mukama Joseph – S23B23/036}
+\author[2]{Oscar Odongkara – S23B23/085}
+\author[3]{Namaganda Wakabi Precious – S23B23/092}
+\affil[1]{Bachelor of Science in Computer Science\\
+          Department of Computing \& Technology\\
+          Uganda Christian University}
+\date{Submitted on: 27 November 2025}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{0.5cm}
+
+    % === LOGO AT THE VERY TOP ===
+    \includegraphics[width=0.75\textwidth]{Logo.png}\\[1.8cm]
+
+    % === Main Title in Bold Deep Blue ===
+    {\color{deepucublue}\Huge\bfseries UniGuard Wallet}\\[0.8cm]
+    {\color{black}\LARGE\bfseries AI-Driven Personal Budgeting and Financial Literacy Enhancement\\
+    for University Students in Uganda}\\[2.5cm]
+
+    % === Authors ===
+    {\large\large\bfseries Submitted by:\\[0.8cm]
+    \large
+    Mukama Joseph \quad – \quad S23B23/036 \\[0.4cm]
+    Oscar Odongkara \quad – \quad S23B23/085 \\[0.4cm]
+    Namaganda Wakabi Precious \quad – \quad S23B23/092 \\[2cm]
+    }
+
+    {\large Bachelor of Science in Computer Science\\
+    Department of Computing \& Technology\\
+    Uganda Christian University\\[2.5cm]}
+
+    {\large \textbf{Date of Submission:}\\[0.3cm]
+    27 November 2025}
+
+    \vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+\newpage
+\section{\huge \textbf{INTRODUCTION}}
+
+\subsection{\large Background}
+Uganda is one of the countries that has the youngest population in the world, with a median age of 15.8 years and more than 78\% of its population below the age of 35 \citep{ubos2024}. Mobile money use has expanded rapidly, reaching 33.8 million registered accounts and daily transaction values exceeding UGX 1.2 trillion as of December 2024\citep{bou2024}. Despite this widespread adoption of digital financial services, financial literacy among young people remains critically low. According to the National Financial Inclusion Strategy 2023–2028 reports that only 34\% of Ugandans aged 18–30 can correctly answer basic financial literacy questions, while fewer than 25\% maintain any form of personal budget \citep{mofped2023}.
+
+University students represent one of the most financially vulnerable groups within this demographic.
+They typically receive irregular monthly allowances ranging from UGX 150,000 to UGX 400,000, face fixed costs such as hostel fees (UGX 500,000–900,000 per semester), meals, transport, and academic materials, and experience intense social pressure to spend on entertainment, fashion, and cultural obligations including contributions to funerals, weddings, church offerings, and clan events. Poor financial decisions frequently result in dropout, mental health challenges, or reliance on predatory digital lenders charging interest rates above 100\% per month.
+These challenges reveal a critical need for supportive, student-centered financial tools that can guide young people toward responsible financial habits during their formative university years.
+
+\subsection{\large Problem Statement}
+Despite the rapid expansion of mobile money services in Uganda with over 33.8 million registered accounts and daily transaction values exceeding UGX 1.2 trillion \citep{bou2024}, university students remain disproportionately vulnerable to financial mismanagement due to the absence of a context-appropriate digital personal finance solution. Existing global applications such as Mint, YNAB, and Wallet are designed primarily for markets with structured bank statements and direct (Application programming interface)API integrations, rendering them incapable of automatically parsing and categorising the unstructured SMS transaction notifications sent by MTN MoMo and Airtel Money  the dominant financial channels used by Ugandan youth \citep{bou2024}. These tools do not recognise locally meaningful expenditure categories including boda-boda transport, street food (chapati, rolex, muchomo), airtime and data bundles, church offerings and tithes, salon services, clan or family contributions (harambee), funeral support, or wedding envelopes all of which form a significant portion of student spending in the Ugandan cultural context \citep{amana2024}. 
+Moreover, they fail to accommodate the highly irregular income patterns characteristic of university students who rely on inconsistent parental allowances, part-time work, or sponsorship remittances \citep{mofped2023}. Current solutions also lack predictive intelligence capable of forecasting expenditure based on limited and erratic transaction histories, offer no engaging, gamified financial literacy content grounded in Ugandan social realities, and typically require continuous internet connectivity a major barrier given the prevalence of low end Android devices and intermittent network coverage on campuses \citep{ubos2024}. Consequently, Ugandan university students experience persistent challenges including impulse spending, inaccurate expense tracking, accumulation of high-interest debt from predatory mobile loan applications, chronic financial anxiety, and critically low levels of financial capability that hinder their transition to economic independence after graduation \citep{mofped2023,amana2024}. This substantial and well-documented gap in accessible, culturally relevant, intelligent, and engaging personal financial management tools specifically tailored for the Ugandan tertiary education environment represents both a pressing socio-economic challenge and a clear opportunity for targeted technological intervention \citep{mursi2024,imawan2025}.
+
+\subsection{\large Main Objective}
+To design, develop, and evaluate UniGuard Wallet an Android mobile application that integrates artificial intelligence, automatic mobile money transaction parsing, predictive budgeting, and gamified financial education to significantly improve personal financial management and literacy among university students in Uganda.
+
+\subsection{\large Specific Objectives}
+\begin{enumerate}[label=\arabic*.]
+    \item To design and implement an automatic expense ingestion system capable of parsing unstructured SMS notifications from MTN MoMo and Airtel Money using the Android SMS Retriever API combined with regex patterns and lightweight machine learning categorisation
+    \item To develop and deploy deep learning forecasting models based on Long Short-Term Memory (LSTM) and Gated Recurrent Unit (GRU) architectures, optimised through Particle Swarm Optimization (PSO) for accurate prediction of future spending patterns and savings trajectories from limited historical data
+    \item To integrate a comprehensive gamification framework incorporating points, badges, leaderboards, daily challenges, progress visualisation, and personalised nudges grounded in Self-Determination Theory
+    \item To create an adaptive financial literacy academy comprising more than 50 micro-lessons, quizzes, and real-life Ugandan case studies covering topics including budgeting, saving, debt management, mobile money safety, entrepreneurship, and tithing
+    \item To conduct a mixed-methods evaluation involving baseline surveys, usability testing, and pre/post financial literacy assessments with at least 100 Uganda Christian University students to measure improvements in knowledge, confidence, and financial behaviour
+\end{enumerate}
+
+\subsection{\large Scope}
+The project will deliver a fully functional Android prototype (minimum API 21) targeting Uganda Christian University students as the primary user group. Core functionalities include automatic expense tracking, AI-powered insights and forecasting, interactive budgeting tools, gamified financial education, savings goal tracking, and anonymous community challenges. Direct integration with banking APIs, cryptocurrency features, investment recommendations, and lending services are explicitly excluded from scope.
+
+\subsection{\large Justification}
+The proposed solution directly contributes to the National Financial Inclusion Strategy 2023–2028 objective of increasing youth financial literacy from 34\% to 60\% by 2028 \citep{mofped2023}. It addresses an identified market gap using state-of-the-art artificial intelligence and behavioural science while aligning with Uganda Christian University’s mission of producing spiritually alive, intellectually alert, and socially responsible graduates.
+
+\newpage
+% === LITERATURE REVIEW AND OTHER SECTIONS (same as before) ===
+% (Keep your full Literature Review, Methodology, Workplan, Budget here)
+
+\section{\huge \textbf{Literature Review}}
+\subsection{\large Historical Perspective}
+Personal finance management tools have evolved through three distinct generations. First-generation applications in the 1990s and early 2000s were standalone desktop programs requiring manual transaction entry. Second-generation cloud-based solutions introduced automatic bank feeds and multi-device synchronisation between 2010 and 2018. Third-generation applications emerging from 2020 onwards incorporate machine learning for transaction categorisation, predictive analytics, and behavioural nudges \citep{imawan2025}.
+
+\subsection{\large Conceptual Perspective}
+\subsubsection{\large Artificial Intelligence in Personal Finance}
+Sequential deep learning architectures dominate modern personal finance prediction tasks. Long Short-Term Memory (LSTM) networks and Gated Recurrent Units (GRU) are employed for modelling temporal dependencies in transaction sequences, enabling accurate forecasting of future expenditure and savings trajectories from short historical records \citep{kumar2024}. Hybrid architectures combining LSTM layers with dense neural networks achieve superior performance by simultaneously processing sequential and static features \citep{vasanthakumari2025}. Particle Swarm Optimization and Adaptive Whale Optimization Algorithm are applied as meta-heuristic techniques for automated hyperparameter tuning of deep learning models in financial prediction contexts, yielding accuracy improvements of up to 98\% in controlled experiments \citep{balakrishnan2025,elhoseny2022}. Lightweight probabilistic classifiers such as Gaussian Naive Bayes are utilised for real-time transaction categorisation on resource-constrained mobile devices \citep{vasanthakumari2025}.
+
+\subsubsection{\large Gamification for Sustained Engagement}
+Gamified personal financial management applications incorporate game design elements including points, experience progression, achievement badges, leaderboards, daily quests, and visual progress indicators. Empirical studies demonstrate retention increases of 40–48\% compared to non-gamified counterparts \citep{bitrian2021}. Self-Determination Theory serves as the dominant psychological framework, positing that satisfaction of competence, autonomy, and relatedness needs drives intrinsic motivation and long-term behaviour change \citep{uppaluri2025,khaldi2023}.
+
+\subsection{\large Contextual Perspective}
+Financial literacy interventions across sub-Saharan Africa increasingly leverage mobile technology. Conversational AI agents deployed via WhatsApp and SMS in multiple countries have produced knowledge gains exceeding 70\% within eight-week programmes \citep{mursi2024}. Gamified financial education platforms implemented in Kenya have increased regular savings behaviour by approximately 38\% among youth cohorts \citep{amana2024}. Despite these advances, no documented mobile solution currently integrates automatic parsing of Ugandan mobile money SMS, deep learning forecasting with swarm optimisation, and culturally contextualised gamified education delivered entirely offline on low-end Android devices.
+
+\section{\huge \textbf{Methodology}}
+\subsection{\large Research Method}
+Design Science Research Methodology (DSRM) is adopted as the guiding paradigm for artefact creation and evaluation \citep{peffers2007}. The six-phase process comprises problem identification, objective definition, design and development, demonstration, evaluation, and communication.
+
+\subsection{\large Data Collection}
+Primary data will be collected through:
+\begin{itemize}
+    \item Baseline survey of 120 UCU students using the standardised OECD/INFE financial literacy and behaviour questionnaire
+    \item Fifteen semi-structured interviews to capture detailed spending narratives and pain points
+    \item Three focus group discussions (8 participants each) for co-designing gamification elements and lesson content
+    \item Continuous application telemetry via Firebase Analytics
+    \item Pre- and post-intervention administration of a 25-item financial literacy test validated in similar contexts
+\end{itemize}
+
+\subsection{\large System Design}
+\begin{itemize}
+    \item \textbf{Frontend:} Flutter framework with Dart language, implementing Material 3 design system and full offline capability
+    \item \textbf{Backend Services:} Firebase Authentication for secure user management, Cloud Firestore for minimal synchronised data, Cloud Functions for leaderboard computation
+    \item \textbf{AI Subsystem:} Model training conducted offline using Python 3.11, TensorFlow 2.16, and Keras; final lightweight models exported to TensorFlow Lite format (int8 quantisation, <5 MB) for on-device inference
+    \item \textbf{SMS Processing:} Android SMS Retriever API combined with regex patterns trained on 5,000 real Ugandan transaction messages and fallback Gaussian Naive Bayes classifier
+    \item \textbf{Predictive Engine:} Hybrid LSTM-DNN architecture (2–3 LSTM layers, 64–128 units, followed by dense layers) optimised via Particle Swarm Optimization
+    \item \textbf{Gamification Engine:} Custom state machine managing points, badges, levels, daily challenges, and personalised difficulty adjustment
+    \item \textbf{Security \& Privacy:} Biometric or 6-digit PIN authentication, AES-256 encryption of local database, exclusive on-device processing of personal financial data
+\end{itemize}
+
+\subsection{\large Development and Implementation}
+Development follows Agile Scrum methodology with two-week sprints, daily stand-ups, and continuous integration via GitHub. Implementation proceeds in four phases:
+\begin{enumerate}
+    \item Requirements validation and high-fidelity prototyping
+    \item Core functionality development (authentication, SMS parsing, expense tracking)
+    \item AI model integration and gamification layer construction
+    \item Content population, iterative testing, and final evaluation
+\end{enumerate}
+
+\subsection{\large Workplan (27 November 2025 - 28 February 2026)}
+
+\begin{center}
+\begin{tabular}{|p{2.8cm}|p{7.5cm}|p{6cm}|}
+\hline
+\textbf{\large Week} & \textbf{\large Activity Description} & \textbf{\large Measurable Output} \\
+\hline
+1 (27 Nov--3 Dec) & Final proposal submission, ethics clearance application, baseline survey distribution & Approved proposal, 120 completed survey responses \\
+\hline
+2--3 (4--17 Dec) & UI/UX design in Figma, database schema finalisation, detailed system architecture documentation & 45+ high-fidelity screens, complete technical design document \\
+\hline
+4--6 (18 Dec--14 Jan) & Development of authentication, SMS parser, manual entry interface, initial LSTM model training on simulated data & Fully functional MVP v0.1 with automatic expense ingestion \\
+\hline
+7 (15--21 Jan) & First usability testing round with 25 students, SUS scoring, heuristic evaluation & Usability report with SUS ≥ 80, prioritised improvement backlog \\
+\hline
+8--10 (22 Jan--11 Feb) & Implementation of gamification engine, creation of 50+ financial literacy lessons and quizzes, integration of advanced forecasting model & Complete MVP v0.2 with full gamification and content \\
+\hline
+11--12 (12--25 Feb) & Large-scale pilot with 80--100 students, impact evaluation, data analysis, final refinements & Final dataset, statistical impact report, polished application \\
+\hline
+13 (26--28 Feb) & Comprehensive documentation, defense presentation preparation, final submission packaging & Bound report, source code repository, 50-slide defense presentation \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Final Defense and Submission:} First week of March 2026
+
+\subsection{\large Budget}
+
+\begin{center}
+\begin{tabular}{|p{10.5cm}|r|}
+\hline
+\textbf{\large Item} & \textbf{\large Cost (UGX)} \\
+\hline
+Laptop RAM upgrade to 32 GB (required for deep learning training) & 800,000 \\
+\hline
+Three mid-range Android test devices (Tecno Spark/Infinix Hot series) & 900,000 \\
+\hline
+Internet bundles for development and testing (3 months) & 450,000 \\
+\hline
+Google Play Console one-time fee and Firebase Blaze plan & 250,000 \\
+\hline
+User testing incentives (airtime vouchers and refreshments for 100 participants) & 350,000 \\
+\hline
+Printing, binding (5 copies), posters, and banners & 150,000 \\
+\hline
+Contingency reserve (10\%) & 290,000 \\
+\hline
+\textbf{TOTAL} & \textbf{3,190,000} \\
+\hline
+\end{tabular}
+\end{center}
+
+% === FINAL WORKING BIBLIOGRAPHY SETUP ===
+\clearpage
+\bibliographystyle{apalike}       % Reliable APA-style that works with natbib
+\bibliography{references}         % This loads your references.bib file
+
+% === APPENDIX ===
+\newpage
+\section*{\large Appendix 1: Group Member Contributions}
+\begin{itemize}
+    \item \textbf{Oscar Odongkara (Team Leader)} – Overall project coordination, introduction section, problem statement, workplan, budget, final presentation slides
+    \item \textbf{Mukama Joseph} – Literature review, AI methodology, deep learning model design, swarm optimisation implementation, system architecture, technical documentation
+    \item \textbf{Namaganda Wakabi Precious} – Gamification framework design, financial literacy curriculum development, contextual analysis, user testing coordination, appendix preparation
+\end{itemize}
+
+\end{document}
